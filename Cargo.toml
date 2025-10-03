@@ -1,0 +1,15 @@
+[workspace.package]
+description = "the online judge"
+authors = ["ParaN3xus"]
+version = "0.1.0"
+edition = "2024"
+readme = "README.md"
+license = "GPL-3.0-only"
+homepage = "https://github.com/ParaN3xus/theoj"
+repository = "https://github.com/ParaN3xus/theoj"
+
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.dependencies]
