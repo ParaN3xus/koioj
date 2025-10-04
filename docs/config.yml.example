@@ -1,0 +1,5 @@
+listen: "0.0.0.0:8080"
+maxWorkers: 16
+logFile: "theoj.log"
+logLevel: "Debug"
+maxConnections: 1000
