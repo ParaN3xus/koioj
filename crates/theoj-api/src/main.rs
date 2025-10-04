@@ -59,7 +59,7 @@ fn init_log(config: &Config) -> WorkerGuard {
         .create(true)
         .append(true)
         .open(&config.log_file)
-        .expect("Failed to open the log file!");
+        .expect("failed to open the log file!");
     let (non_blocking, guard) = tracing_appender::non_blocking(file);
 
     tracing_subscriber::registry()
@@ -67,7 +67,7 @@ fn init_log(config: &Config) -> WorkerGuard {
         .with(fmt::layer().with_writer(non_blocking).with_ansi(false)) // file layer
         .with(EnvFilter::from_default_env().add_directive(config.log_level.into()))
         .init();
-    tracing::info!("Log inited!");
+    tracing::info!("log inited!");
 
     guard
 }
@@ -121,14 +121,14 @@ fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
     let config: Config =
-        serde_yaml::from_reader(File::open("config.yml").expect("Failed to open the config file!"))
-            .expect("Failed to read the config!");
+        serde_yaml::from_reader(File::open("config.yml").expect("failed to open the config file!"))
+            .expect("failed to read the config!");
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(config.max_workers)
         .enable_all()
         .build()
-        .expect("Failed to build tokio runtime");
+        .expect("failed to build tokio runtime");
     let _enter_guard = runtime.enter();
 
     let _log_guard = init_log(&config);
