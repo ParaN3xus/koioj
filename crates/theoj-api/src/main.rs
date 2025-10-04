@@ -1,18 +1,35 @@
 mod config;
+mod error;
+mod route;
 
-use anyhow::Result;
+use axum::{
+    Extension,
+    extract::{DefaultBodyLimit, connect_info::MockConnectInfo},
+};
 use config::Config;
+use error::Result;
 use sqlx::{
     ConnectOptions, PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
+use std::io;
 use std::{
-    fs::{File, OpenOptions},
-    io::Write,
+    fs::File,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
     sync::Arc,
     time::Instant,
 };
+use tokio::net::TcpListener;
+use tower::ServiceBuilder;
+use tower_http::{
+    cors::{self, CorsLayer},
+    normalize_path::NormalizePathLayer,
+    trace::TraceLayer,
+};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+use uuid::Uuid;
 
 pub struct AppState {
     pub config: Arc<Config>,
@@ -37,41 +54,67 @@ impl AppState {
     }
 }
 
-fn init_log(config: Config) {
-    struct MultiWriter<W1: Write, W2: Write> {
-        writer1: W1,
-        writer2: W2,
-    }
-    impl<W1: Write, W2: Write> Write for MultiWriter<W1, W2> {
-        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-            self.writer1.write_all(buf)?;
-            self.writer2.write_all(buf)?;
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            self.writer1.flush()?;
-            self.writer2.flush()
-        }
-    }
-
-    let file = OpenOptions::new()
+fn init_log(config: &Config) -> WorkerGuard {
+    let file = std::fs::OpenOptions::new()
         .create(true)
-        .write(true)
         .append(true)
-        .open(config.log_file)
+        .open(&config.log_file)
         .expect("Failed to open the log file!");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file);
 
-    let multi_writer = MultiWriter {
-        writer1: std::io::stdout(),
-        writer2: file,
-    };
-
-    env_logger::Builder::from_default_env()
-        .filter_level(config.log_level.to_level_filter())
-        .target(env_logger::Target::Pipe(Box::new(multi_writer)))
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_writer(io::stdout)) // stdout layer
+        .with(fmt::layer().with_writer(non_blocking).with_ansi(false)) // file layer
+        .with(EnvFilter::from_default_env().add_directive(config.log_level.into()))
         .init();
+    tracing::info!("Log inited!");
 
-    log::info!("Log inited!");
+    guard
+}
+
+async fn start_api(config: Config) -> Result<()> {
+    let config = Arc::new(config);
+    let state = Arc::new(AppState::new(Arc::clone(&config)).await?);
+
+    let app = route::routes()
+        .layer(
+            ServiceBuilder::new()
+                .layer(Extension(MockConnectInfo(IpAddr::V4(
+                    Ipv4Addr::UNSPECIFIED,
+                ))))
+                .layer(TraceLayer::new_for_http().make_span_with(
+                    |request: &axum::http::Request<_>| {
+                        let request_id = Uuid::new_v4();
+                        tracing::info_span!(
+                            "http_request",
+                            method = %request.method(),
+                            uri = %request.uri(),
+                            request_id = %request_id,
+                        )
+                    },
+                ))
+                .layer(
+                    CorsLayer::new()
+                        .allow_methods(cors::Any)
+                        .allow_headers(cors::Any)
+                        .allow_origin(cors::Any),
+                )
+                .layer(DefaultBodyLimit::max(
+                    (config.max_file_size_mb * 1024. * 1024.) as usize,
+                ))
+                .layer(NormalizePathLayer::trim_trailing_slash()),
+        )
+        .with_state(Arc::clone(&state));
+
+    tracing::info!("listening on {}", config.listen);
+    let listener = TcpListener::bind(&config.listen).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
+
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -87,7 +130,8 @@ fn main() -> Result<()> {
         .build()
         .expect("Failed to build tokio runtime");
     let _enter_guard = runtime.enter();
-    init_log(config);
 
-    Ok(())
+    let _log_guard = init_log(&config);
+
+    runtime.block_on(start_api(config))
 }

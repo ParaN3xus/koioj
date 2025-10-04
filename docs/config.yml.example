@@ -3,3 +3,4 @@ maxWorkers: 16
 logFile: "theoj.log"
 logLevel: "Debug"
 maxConnections: 1000
+maxFileSizeMb: 8
