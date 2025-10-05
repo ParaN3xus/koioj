@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use chrono::Duration;
 use serde::Deserialize;
 use tracing::Level;
 
@@ -13,6 +14,9 @@ pub struct Config {
     pub log_level: Level,
     pub max_connections: u32,
     pub max_file_size_mb: f32,
+    pub jwt_secret: String,
+    pub jwt_expiry: Duration,
+    pub admin_password: Option<String>,
 }
 
 fn deserialize_log_level<'de, D>(deserializer: D) -> Result<Level, D::Error>

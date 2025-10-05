@@ -1,0 +1,9 @@
+listen: "0.0.0.0:8080"
+maxWorkers: 16
+logFile: "theoj.log"
+logLevel: "Debug"
+maxConnections: 1000
+maxFileSizeMb: 8
+jwtSecret: "this-is-a-secret"
+jwtExpiry: [2592000, 0]  # 30d * 24h * 60m * 60s
+# adminPassword: "leave-commented-to-generate"

@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
-use crate::Result;
+use crate::{AppState, Result};
 use axum::{Json, Router};
 use serde::Serialize;
-
-use crate::AppState;
+use std::sync::Arc;
+use utoipa::ToSchema;
 
 pub fn top_routes() -> Router<Arc<AppState>> {
     use axum::routing::*;
@@ -13,17 +11,34 @@ pub fn top_routes() -> Router<Arc<AppState>> {
         .route("/version", get(version))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/ping",
+    responses(
+        (status = 200, description = "Server is alive", body = String)
+    ),
+    tag = "health"
+)]
 async fn ping() -> Result<String> {
     Ok("pong".to_string())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct VersionInfo {
+pub(crate) struct VersionResponse {
     api_version: String,
 }
-async fn version() -> Result<Json<VersionInfo>> {
-    let version_info = VersionInfo {
+
+#[utoipa::path(
+    get,
+    path = "/api/version",
+    responses(
+        (status = 200, description = "API version info", body = VersionResponse)
+    ),
+    tag = "health"
+)]
+async fn version() -> Result<Json<VersionResponse>> {
+    let version_info = VersionResponse {
         api_version: env!("CARGO_PKG_VERSION").to_string(),
     };
 

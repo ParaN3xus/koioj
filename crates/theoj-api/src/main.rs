@@ -1,3 +1,4 @@
+mod auth;
 mod config;
 mod error;
 mod route;
@@ -7,7 +8,7 @@ use axum::{
     extract::{DefaultBodyLimit, connect_info::MockConnectInfo},
 };
 use config::Config;
-use error::Result;
+use error::{Error, Result};
 use sqlx::{
     ConnectOptions, PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
@@ -31,6 +32,10 @@ use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
+use crate::auth::{generate_strong_password, hash_password};
+
+pub type State = axum::extract::State<Arc<AppState>>;
+
 pub struct AppState {
     pub config: Arc<Config>,
     pool: PgPool,
@@ -51,6 +56,53 @@ impl AppState {
             pool: pool,
             started: Instant::now(),
         })
+    }
+
+    pub async fn create_admin_account(&self) -> Result<()> {
+        let existing_admin: Option<i32> = sqlx::query_scalar!(
+            r#"
+        SELECT id FROM users WHERE username = 'admin'
+        "#
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("check admin account failed: {}", e)))?;
+        if let Some(admin_id) = existing_admin {
+            if admin_id != 1 {
+                tracing::warn!(
+                    "admin account already exists but with non-initial id: {}",
+                    admin_id
+                );
+            }
+            tracing::info!("admin account already exists, skipping creation");
+            return Ok(());
+        }
+
+        tracing::warn!("admin account doesn't exist, creating");
+
+        let password_hash = hash_password(self.config.admin_password.clone().unwrap_or({
+            let password = generate_strong_password();
+            tracing::warn!("admin password doesn't exist in the given config, using {password}");
+            password
+        }))?;
+
+        let _user_id: i32 = sqlx::query_scalar!(
+            r#"
+        INSERT INTO users (phone, email, username, user_code, user_type, password, status)
+        VALUES ($1, $2, $3, $4, 'admin', $5, 'active')
+        RETURNING id
+        "#,
+            "00000000000",
+            "admin@admin.admin",
+            "admin",
+            "000000000000",
+            password_hash
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("create admin account failed: {}", e)))?;
+
+        Ok(())
     }
 }
 
@@ -76,7 +128,9 @@ async fn start_api(config: Config) -> Result<()> {
     let config = Arc::new(config);
     let state = Arc::new(AppState::new(Arc::clone(&config)).await?);
 
-    let app = route::routes()
+    state.create_admin_account().await?;
+
+    let app = route::routes(state.clone())
         .layer(
             ServiceBuilder::new()
                 .layer(Extension(MockConnectInfo(IpAddr::V4(

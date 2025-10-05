@@ -26,6 +26,13 @@ macro_rules! bail {
 pub struct Error(pub StatusCode, pub Option<anyhow::Error>);
 
 impl Error {
+    pub fn msg<S: Into<String>>(s: S) -> Self {
+        Self(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Some(anyhow::Error::msg(s.into())),
+        )
+    }
+
     pub fn anyhow(e: anyhow::Error) -> Self {
         Self(StatusCode::INTERNAL_SERVER_ERROR, Some(e))
     }

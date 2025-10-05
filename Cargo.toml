@@ -20,7 +20,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 anyhow = "1.0.100"
 serde_yaml = "0.9.34"
 tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread"] }
-axum = "0.8.6"
+axum = { version = "0.8.6", features = ["macros"] }
 tower-http = { version = "0.6.6", features = [
     "trace",
     "cors",
@@ -34,3 +34,10 @@ tracing = "0.1.41"
 tracing-serde = "0.2.0"
 serde_json = "1.0.145"
 tower = "0.5.2"
+utoipa = { version = "5.4.0", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+jsonwebtoken = { version = "10.0.0", features = ["rust_crypto"] }
+chrono = { version = "0.4.42", features = ["serde"] }
+argon2 = { version = "0.5.3", features = ["std"] }
+regex = "1.11.3"
+passwords = "3.1.16"

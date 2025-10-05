@@ -1,4 +1,8 @@
 /target
+
+/local
 /.env
 /config.yml
 /theoj.log
+
+openapi.json
