@@ -41,3 +41,10 @@ chrono = { version = "0.4.42", features = ["serde"] }
 argon2 = { version = "0.5.3", features = ["std"] }
 regex = "1.11.3"
 passwords = "3.1.16"
+phf = { version = "0.13.1", features = ["macros"] }
+mime_guess = "2.0.5"
+
+# our own crates
+theoj-web = { path = "crates/theoj-web" }
+theoj-api = { path = "crates/theoj-api" }
+theoj-judge = { path = "crates/theoj-judge" }

@@ -1,5 +1,6 @@
 mod misc;
 mod user;
+mod web;
 
 use crate::AppState;
 use axum::Router;
@@ -16,7 +17,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         Router::new()
             .merge(misc::top_routes())
             .merge(user::top_routes())
-            .nest("/user", user::routes(state)),
+            .nest("/user", user::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {
@@ -25,6 +26,8 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         router = router
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
     };
+    router = router.merge(web::top_routes());
+
     router
 }
 
