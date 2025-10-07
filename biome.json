@@ -6,7 +6,11 @@
 		"useIgnoreFile": false
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": [
+			"**",
+			"!crates/theoj-web/src/theoj-api"
+		]
 	},
 	"formatter": {
 		"enabled": true,

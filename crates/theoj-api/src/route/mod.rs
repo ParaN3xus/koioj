@@ -1,5 +1,7 @@
 mod misc;
 mod user;
+
+#[cfg(feature = "embed-frontend")]
 mod web;
 
 use crate::AppState;
@@ -22,11 +24,13 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     #[cfg(debug_assertions)]
     {
         use utoipa_swagger_ui::SwaggerUi;
-        generate_openapi();
         router = router
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
     };
-    router = router.merge(web::top_routes());
+    #[cfg(feature = "embed-frontend")]
+    {
+        router = router.merge(web::top_routes());
+    }
 
     router
 }
@@ -49,15 +53,6 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     )
 )]
 pub struct ApiDoc;
-
-pub fn generate_openapi() {
-    let output_path = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.json");
-
-    std::fs::write(output_path, ApiDoc::openapi().to_pretty_json().unwrap())
-        .expect("Failed to write openapi.json");
-
-    tracing::debug!("openapi.json generated: {}", output_path);
-}
 
 struct SecurityAddon;
 impl Modify for SecurityAddon {

@@ -35,4 +35,9 @@ regex.workspace = true
 passwords.workspace = true
 mime_guess.workspace = true
 
-theoj-web.workspace = true
+theoj-web = { path = "../theoj-web", optional = true, default-features = false }
+
+[features]
+default = ["embed-frontend"]
+
+embed-frontend = ["dep:theoj-web"]

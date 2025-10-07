@@ -6,3 +6,5 @@
   psql -U postgres -d theoj_db -f schema.sql
   ```
 - Create `.env` and `config.yml` with given template.
+- Generate `theoj-api` TypeScript library by `yarn generate-openapi`.
+- Run `theoj-api` by `cargo run --bin theoj-api`.
