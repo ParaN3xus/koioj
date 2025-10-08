@@ -3,12 +3,12 @@ import { Icon } from "@iconify/vue";
 import { themeChange } from "theme-change";
 import { onMounted, ref } from "vue";
 
-const isLightTheme = ref(false);
+const isLightTheme = ref(true);
 
 onMounted(() => {
   themeChange();
 
-  const savedTheme: string = localStorage.getItem("theme") || "dark";
+  const savedTheme: string = localStorage.getItem("theme") || "light";
   document.documentElement.setAttribute("data-theme", savedTheme);
 
   isLightTheme.value = savedTheme === "light";
