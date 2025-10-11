@@ -1,4 +1,4 @@
-CREATE TYPE user_type_enum AS ENUM ('admin', 'teacher', 'student');
+CREATE TYPE user_role_enum AS ENUM ('admin', 'teacher', 'student');
 CREATE TYPE user_status_enum AS ENUM ('active', 'inactive');
 CREATE TYPE problem_status_enum AS ENUM ('active', 'hidden');
 CREATE TYPE contest_type_enum AS ENUM ('public', 'private');
@@ -19,7 +19,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
     user_code VARCHAR(50) UNIQUE NOT NULL,
-    user_type user_type_enum NOT NULL,
+    user_role user_role_enum NOT NULL,
     password VARCHAR(255) NOT NULL,
     status user_status_enum NOT NULL DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

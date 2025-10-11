@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, http::StatusCode, middleware};
+use axum::{Extension, Json, Router, extract::Path, http::StatusCode, middleware};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{
     AppState, Result, State,
-    auth::{generate_jwt_token, hash_password, jwt_auth_middleware, verify_password},
+    auth::{Claims, generate_jwt_token, hash_password, jwt_auth_middleware, verify_password},
     bail,
     error::Error,
+    perm::{Action, Resource, UserRole, check_permission},
 };
 
 pub fn top_routes() -> Router<Arc<AppState>> {
@@ -22,7 +23,7 @@ pub fn top_routes() -> Router<Arc<AppState>> {
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
     Router::new()
-        // .route("/profile", get(profile))
+        .route("/users/{user_id}/role", put(put_role))
         .layer(middleware::from_fn_with_state(state, jwt_auth_middleware))
 }
 
@@ -92,14 +93,15 @@ async fn register(state: State, Json(p): Json<RegisterRequest>) -> Result<Json<R
 
     let user_id: i32 = sqlx::query_scalar!(
         r#"
-    INSERT INTO users (phone, email, username, user_code, user_type, password, status)
-    VALUES ($1, $2, $3, $4, 'student', $5, 'active')
+    INSERT INTO users (phone, email, username, user_code, user_role, password, status)
+    VALUES ($1, $2, $3, $4, $5, $6, 'active')
     RETURNING id
     "#,
         p.phone,
         p.email,
         p.username,
         p.user_code,
+        UserRole::Student as UserRole,
         password_hash
     )
     .fetch_one(&state.pool)
@@ -160,7 +162,7 @@ async fn login(state: State, Json(p): Json<LoginRequest>) -> Result<Json<LoginRe
         r#"
     SELECT id, password, status as "status: UserStatus"
     FROM users
-    WHERE phone = $1 OR email = $1
+    WHERE username = $1 OR phone = $1 OR email = $1
     "#,
         p.identifier
     )
@@ -186,4 +188,59 @@ async fn login(state: State, Json(p): Json<LoginRequest>) -> Result<Json<LoginRe
         user_id: user.id.to_string(),
         token,
     }))
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PutRoleRequest {
+    user_role: UserRole,
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/users/{user_id}/role",
+    request_body = PutRoleRequest,
+    params(
+        ("user_id" = String, Path, description = "User ID to update role")
+    ),
+    responses(
+        (status = 200, description = "Update user role successfully", body = ())
+    ),
+    tag = "user",
+)]
+async fn put_role(
+    state: State,
+    claims: Extension<Claims>,
+    Path(user_id): Path<String>,
+    Json(p): Json<PutRoleRequest>,
+) -> Result<()> {
+    check_permission(
+        &state.pool,
+        &claims,
+        Action::PutRole,
+        Resource::User(user_id.parse().unwrap()),
+    )
+    .await
+    .unwrap();
+
+    let user_id_int: i32 = user_id
+        .parse()
+        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
+
+    let _updated = sqlx::query!(
+        r#"
+        UPDATE users
+        SET user_role = $1
+        WHERE id = $2
+        RETURNING id
+        "#,
+        p.user_role as UserRole,
+        user_id_int
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
+
+    Ok(())
 }

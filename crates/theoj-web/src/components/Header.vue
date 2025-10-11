@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import ThemeToggle from './ThemeToggle.vue';
+import { useUserStore } from "@/user.mts";
+import ThemeToggle from "./ThemeToggle.vue";
 
 const navButtons = [
-  { to: '/problem', text: 'Problem', icon: 'fa7-solid:book' },
-  { to: '/contest', text: 'Contest', icon: 'fa7-solid:trophy' },
-  { to: '/training', text: 'Training', icon: 'fa7-solid:chart-line' },
+  { to: "/problem", text: "Problem", icon: "fa7-solid:book" },
+  { to: "/contest", text: "Contest", icon: "fa7-solid:trophy" },
+  { to: "/training", text: "Training", icon: "fa7-solid:chart-line" },
 ];
-const siteTitle = "TheOJ"
+const siteTitle = "TheOJ";
+
+const userStore = useUserStore();
 </script>
 
 <template>
@@ -28,7 +31,7 @@ const siteTitle = "TheOJ"
         </div>
       </div>
 
-      <div class="navbar-start hidden md:flex flex-1">
+      <div class="navbar-start hidden md:flex md:flex-1">
         <RouterLink class="btn btn-ghost text-xl font-bold mr-8" to="/">{{ siteTitle }}</RouterLink>
         <div class="hidden md:flex md:space-x-2">
           <RouterLink v-for="item in navButtons" :key="item.to" class="btn btn-ghost w-18 text-base" :to="item.to">
@@ -42,7 +45,18 @@ const siteTitle = "TheOJ"
         <RouterLink class="btn btn-ghost text-xl font-bold" to="/">{{ siteTitle }}</RouterLink>
       </div>
 
-      <div class="navbar-end space-x-2 lg:flex-none lg:w-auto">
+      <div class="navbar-end space-x-2 md:flex-none md:w-auto">
+        <template v-if="userStore.isLoggedIn">
+          <div class="flex items-center btn btn-ghost btn-circle justify-center rounded-full ">
+            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-base-300 ">
+              <Icon icon="fa6-solid:user" width="16" />
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <RouterLink class="btn btn-ghost btn-sm" to="/user/login">Login</RouterLink>
+          <RouterLink class="btn btn-primary btn-sm" to="/user/register">Register</RouterLink>
+        </template>
         <ThemeToggle />
       </div>
     </div>

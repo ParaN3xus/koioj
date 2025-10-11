@@ -1,6 +1,7 @@
 mod auth;
 pub mod config;
 pub mod error;
+mod perm;
 pub mod route;
 
 use crate::auth::{generate_strong_password, hash_password};
@@ -86,7 +87,7 @@ impl AppState {
 
         let _user_id: i32 = sqlx::query_scalar!(
             r#"
-        INSERT INTO users (phone, email, username, user_code, user_type, password, status)
+        INSERT INTO users (phone, email, username, user_code, user_role, password, status)
         VALUES ($1, $2, $3, $4, 'admin', $5, 'active')
         RETURNING id
         "#,

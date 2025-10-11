@@ -41,11 +41,9 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         misc::ping,
         misc::version,
         user::register,
-        user::login
+        user::login,
+        user::put_role
     ),
-    components(schemas(
-        misc::VersionResponse,
-    )),
     modifiers(&SecurityAddon),
     tags(
         (name = "health", description = "Health check endpoints"),

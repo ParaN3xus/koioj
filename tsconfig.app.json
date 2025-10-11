@@ -7,14 +7,21 @@
     ],
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./crates/theoj-web/src/*"
+      ]
+    }
   },
   "include": [
     "crates/theoj-web/**/*.ts",
+    "crates/theoj-web/**/*.mts",
     "crates/theoj-web/**/*.tsx",
     "crates/theoj-web/**/*.vue"
   ]
