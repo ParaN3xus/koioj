@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AppState, Result};
+use crate::{AppState, Result, error::Error};
 use argon2::{
     Argon2, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
@@ -65,17 +65,17 @@ pub async fn jwt_auth_middleware(
     State(state): State<Arc<AppState>>,
     mut request: Request,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<Response> {
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or(Error::msg("missing auth header").status_code(StatusCode::UNAUTHORIZED))?;
     let token = auth_header
         .strip_prefix("Bearer ")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or(Error::msg("missing auth token").status_code(StatusCode::UNAUTHORIZED))?;
     let claims = verify_jwt_token(token, state.config.jwt_secret.clone())
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        .map_err(|_| Error::msg("invalid token").status_code(StatusCode::UNAUTHORIZED))?;
     request.extensions_mut().insert(claims);
     Ok(next.run(request).await)
 }
