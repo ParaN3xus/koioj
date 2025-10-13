@@ -43,12 +43,14 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         users::register,
         users::login,
         users::get_role,
-        users::put_role
+        users::put_role,
+        users::get_profile,
+        users::put_profile,
     ),
     modifiers(&JWTAuthAddon),
     tags(
-        (name = "health", description = "Health check endpoints"),
-        (name = "users", description = "User management")
+        (name = "health"),
+        (name = "users")
     ),
     components(
         schemas(ErrorResponse),

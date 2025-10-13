@@ -25,6 +25,8 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .route("/{user_id}/role", put(put_role))
         .route("/{user_id}/role", get(get_role))
+        .route("/{user_id}/profile", put(put_profile))
+        .route("/{user_id}/profile", get(get_profile))
         .layer(middleware::from_fn_with_state(state, jwt_auth_middleware))
 }
 
@@ -66,7 +68,7 @@ pub(crate) struct RegisterResponse {
     path = "/api/register",
     request_body = RegisterRequest,
     responses(
-        (status = 200, description = "Register an account", body = RegisterResponse),
+        (status = 200, body = RegisterResponse),
     ),
     tag = "user"
 )]
@@ -150,7 +152,7 @@ pub(crate) struct LoginResponse {
     path = "/api/login",
     request_body = LoginRequest,
     responses(
-        (status = 200, description = "Login to account", body = LoginResponse),
+        (status = 200, body = LoginResponse),
     ),
     tag = "user"
 )]
@@ -202,11 +204,11 @@ pub(crate) struct PutRoleRequest {
     path = "/api/users/{user_id}/role",
     request_body = PutRoleRequest,
     params(
-        ("user_id" = String, Path, description = "User ID to update role")
+        ("user_id" = String, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Update user role successfully", body = ()),
+        (status = 200, body = ()),
     ),
     tag = "user",
 )]
@@ -256,11 +258,11 @@ pub(crate) struct GetRoleResponse {
     get,
     path = "/api/users/{user_id}/role",
     params(
-        ("user_id" = String, Path, description = "User ID to get role")
+        ("user_id" = String, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "User role get successfully", body = GetRoleResponse),
+        (status = 200, body = GetRoleResponse),
     ),
     tag = "user",
 )]
@@ -293,11 +295,161 @@ async fn get_role(
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .ok_or_else(|| {
-        println!("111");
-        Error::msg("user not found").status_code(StatusCode::NOT_FOUND)
-    })?
+    .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?
     .user_role;
 
     Ok(Json(GetRoleResponse { role }))
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct GetProfileResponse {
+    username: String,
+    role: UserRole,
+    phone: Option<String>,
+    email: Option<String>,
+    user_code: Option<String>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/users/{user_id}/profile",
+    params(
+        ("user_id" = String, Path)
+    ),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, body = GetProfileResponse),
+    ),
+    tag = "user",
+)]
+async fn get_profile(
+    state: State,
+    claims: Extension<Claims>,
+    Path(user_id): Path<String>,
+) -> Result<Json<GetProfileResponse>> {
+    check_permission(
+        &state.pool,
+        &claims,
+        Action::GetProfile,
+        Resource::User(user_id.parse().unwrap()),
+    )
+    .await?;
+
+    let user_id_int: i32 = user_id
+        .parse()
+        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
+
+    let requester_id: i32 = claims.sub;
+    let requester_role = sqlx::query!(
+        r#"
+        SELECT user_role as "user_role: UserRole" FROM users
+        WHERE id = $1
+        "#,
+        requester_id
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("requester not found").status_code(StatusCode::UNAUTHORIZED))?
+    .user_role;
+
+    let user = sqlx::query!(
+        r#"
+        SELECT username, user_role as "user_role: UserRole", phone, email, user_code FROM users
+        WHERE id = $1
+        "#,
+        user_id_int
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
+
+    let is_self = requester_id == user_id_int;
+
+    let response = if is_self || requester_role == UserRole::Admin {
+        GetProfileResponse {
+            username: user.username,
+            role: user.user_role,
+            phone: Some(user.phone),
+            email: Some(user.email),
+            user_code: Some(user.user_code),
+        }
+    } else if requester_role == UserRole::Teacher {
+        GetProfileResponse {
+            username: user.username,
+            role: user.user_role,
+            phone: None,
+            email: None,
+            user_code: Some(user.user_code),
+        }
+    } else {
+        GetProfileResponse {
+            username: user.username,
+            role: user.user_role,
+            phone: None,
+            email: None,
+            user_code: None,
+        }
+    };
+
+    Ok(Json(response))
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PutProfileRequest {
+    username: String,
+    email: Option<String>,
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/users/{user_id}/profile",
+    request_body = PutProfileRequest,
+    params(
+        ("user_id" = String, Path)
+    ),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, body = ()),
+    ),
+    tag = "user",
+)]
+async fn put_profile(
+    state: State,
+    claims: Extension<Claims>,
+    Path(user_id): Path<String>,
+    Json(p): Json<PutProfileRequest>,
+) -> Result<()> {
+    check_permission(
+        &state.pool,
+        &claims,
+        Action::PutProfile,
+        Resource::User(user_id.parse().unwrap()),
+    )
+    .await?;
+
+    let user_id_int: i32 = user_id
+        .parse()
+        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
+
+    let _updated = sqlx::query!(
+        r#"
+        UPDATE users
+        SET username = $1, email = $2
+        WHERE id = $3
+        RETURNING id
+        "#,
+        p.username,
+        p.email,
+        user_id_int
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
+
+    Ok(())
 }

@@ -20,11 +20,13 @@ pub(crate) enum UserRole {
 pub enum Action {
     PutRole,
     GetRole,
+    PutProfile,
+    GetProfile,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Resource {
-    User(u32),
+    User(i32),
 }
 
 pub async fn check_permission(
@@ -49,6 +51,8 @@ pub async fn check_permission(
     let has_permission = match (current_user.user_role, action, resource) {
         (UserRole::Admin, _, _) => true,
         (_, Action::GetRole, _) => true,
+        (_, Action::GetProfile, _) => true,
+        (_, Action::PutProfile, Resource::User(id_to_put)) => claims.sub == id_to_put,
         _ => false,
     };
 

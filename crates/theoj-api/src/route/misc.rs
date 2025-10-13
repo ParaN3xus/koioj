@@ -15,7 +15,7 @@ pub fn top_routes() -> Router<Arc<AppState>> {
     get,
     path = "/api/ping",
     responses(
-        (status = 200, description = "Server is alive", body = String)
+        (status = 200, body = String)
     ),
     tag = "health"
 )]
@@ -33,7 +33,7 @@ pub(crate) struct VersionResponse {
     get,
     path = "/api/version",
     responses(
-        (status = 200, description = "API version info", body = VersionResponse)
+        (status = 200, body = VersionResponse)
     ),
     tag = "health"
 )]
