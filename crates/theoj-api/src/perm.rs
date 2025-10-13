@@ -19,6 +19,7 @@ pub(crate) enum UserRole {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
     PutRole,
+    GetRole,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +48,7 @@ pub async fn check_permission(
 
     let has_permission = match (current_user.user_role, action, resource) {
         (UserRole::Admin, _, _) => true,
+        (_, Action::GetRole, _) => true,
         _ => false,
     };
 

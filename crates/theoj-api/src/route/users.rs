@@ -23,7 +23,8 @@ pub fn top_routes() -> Router<Arc<AppState>> {
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
     Router::new()
-        .route("/users/{user_id}/role", put(put_role))
+        .route("/{user_id}/role", put(put_role))
+        .route("/{user_id}/role", get(get_role))
         .layer(middleware::from_fn_with_state(state, jwt_auth_middleware))
 }
 
@@ -203,6 +204,7 @@ pub(crate) struct PutRoleRequest {
     params(
         ("user_id" = String, Path, description = "User ID to update role")
     ),
+    security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "Update user role successfully", body = ())
     ),
@@ -243,4 +245,61 @@ async fn put_role(
     .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct GetRoleResponse {
+    role: UserRole,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/users/{user_id}/role",
+    params(
+        ("user_id" = String, Path, description = "User ID to get role")
+    ),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "User role get successfully", body = GetRoleResponse)
+    ),
+    tag = "user",
+)]
+async fn get_role(
+    state: State,
+    claims: Extension<Claims>,
+    Path(user_id): Path<String>,
+) -> Result<Json<GetRoleResponse>> {
+    check_permission(
+        &state.pool,
+        &claims,
+        Action::GetRole,
+        Resource::User(user_id.parse().unwrap()),
+    )
+    .await
+    .unwrap();
+
+    let user_id_int: i32 = user_id
+        .parse()
+        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
+
+    println!("{user_id_int}");
+
+    let role = sqlx::query!(
+        r#"
+        SELECT user_role as "user_role: UserRole" FROM users
+        WHERE id = $1
+        "#,
+        user_id_int
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| {
+        println!("111");
+        Error::msg("user not found").status_code(StatusCode::NOT_FOUND)
+    })?
+    .user_role;
+
+    Ok(Json(GetRoleResponse { role }))
 }

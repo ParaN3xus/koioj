@@ -1,5 +1,5 @@
 mod misc;
-mod user;
+mod users;
 
 #[cfg(feature = "embed-frontend")]
 mod web;
@@ -18,8 +18,8 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         "/api",
         Router::new()
             .merge(misc::top_routes())
-            .merge(user::top_routes())
-            .nest("/user", user::routes(state.clone())),
+            .merge(users::top_routes())
+            .nest("/users", users::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {
@@ -40,14 +40,15 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     paths(
         misc::ping,
         misc::version,
-        user::register,
-        user::login,
-        user::put_role
+        users::register,
+        users::login,
+        users::get_role,
+        users::put_role
     ),
     modifiers(&SecurityAddon),
     tags(
         (name = "health", description = "Health check endpoints"),
-        (name = "user", description = "User management")
+        (name = "users", description = "User management")
     )
 )]
 pub struct ApiDoc;
