@@ -1,7 +1,9 @@
 use axum::{http::StatusCode, response::IntoResponse};
+use serde::Serialize;
 use serde_json::json;
 use std::fmt::{Debug, Display};
 use tracing::error;
+use utoipa::ToSchema;
 
 #[macro_export]
 macro_rules! bail {
@@ -72,11 +74,16 @@ impl IntoResponse for Error {
         (
             self.0,
             self.1
-                .map(|it| json!({ "error": format!("{it}") }).to_string())
+                .map(|it| json!({ "message": format!("{it}") }).to_string())
                 .unwrap_or_default(),
         )
             .into_response()
     }
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub message: String,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

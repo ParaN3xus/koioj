@@ -4,7 +4,7 @@ mod users;
 #[cfg(feature = "embed-frontend")]
 mod web;
 
-use crate::AppState;
+use crate::{AppState, error::ErrorResponse};
 use axum::Router;
 use std::sync::Arc;
 use utoipa::{
@@ -45,16 +45,19 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         users::get_role,
         users::put_role
     ),
-    modifiers(&SecurityAddon),
+    modifiers(&JWTAuthAddon),
     tags(
         (name = "health", description = "Health check endpoints"),
         (name = "users", description = "User management")
+    ),
+    components(
+        schemas(ErrorResponse),
     )
 )]
 pub struct ApiDoc;
 
-struct SecurityAddon;
-impl Modify for SecurityAddon {
+struct JWTAuthAddon;
+impl Modify for JWTAuthAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
