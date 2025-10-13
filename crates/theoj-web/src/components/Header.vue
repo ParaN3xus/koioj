@@ -47,11 +47,11 @@ const userStore = useUserStore();
 
       <div class="navbar-end space-x-2 md:flex-none md:w-auto">
         <template v-if="userStore.isLoggedIn">
-          <div class="flex items-center btn btn-ghost btn-circle justify-center rounded-full ">
+          <RouterLink class="flex items-center btn btn-ghost btn-circle justify-center rounded-full" to="/profile">
             <div class="w-10 h-10 flex items-center justify-center rounded-full bg-base-300 ">
               <Icon icon="fa6-solid:user" width="16" />
             </div>
-          </div>
+          </RouterLink>
         </template>
         <template v-else>
           <RouterLink class="btn btn-ghost btn-sm" to="/user/login">Login</RouterLink>
