@@ -66,7 +66,7 @@ pub(crate) struct RegisterResponse {
     path = "/api/register",
     request_body = RegisterRequest,
     responses(
-        (status = 200, description = "Register an account", body = RegisterResponse)
+        (status = 200, description = "Register an account", body = RegisterResponse),
     ),
     tag = "user"
 )]
@@ -150,7 +150,7 @@ pub(crate) struct LoginResponse {
     path = "/api/login",
     request_body = LoginRequest,
     responses(
-        (status = 200, description = "Login to account", body = LoginResponse)
+        (status = 200, description = "Login to account", body = LoginResponse),
     ),
     tag = "user"
 )]
@@ -206,7 +206,7 @@ pub(crate) struct PutRoleRequest {
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "Update user role successfully", body = ())
+        (status = 200, description = "Update user role successfully", body = ()),
     ),
     tag = "user",
 )]
@@ -222,8 +222,7 @@ async fn put_role(
         Action::PutRole,
         Resource::User(user_id.parse().unwrap()),
     )
-    .await
-    .unwrap();
+    .await?;
 
     let user_id_int: i32 = user_id
         .parse()
@@ -261,7 +260,7 @@ pub(crate) struct GetRoleResponse {
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, description = "User role get successfully", body = GetRoleResponse)
+        (status = 200, description = "User role get successfully", body = GetRoleResponse),
     ),
     tag = "user",
 )]
@@ -276,8 +275,7 @@ async fn get_role(
         Action::GetRole,
         Resource::User(user_id.parse().unwrap()),
     )
-    .await
-    .unwrap();
+    .await?;
 
     let user_id_int: i32 = user_id
         .parse()
