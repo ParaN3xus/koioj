@@ -27,6 +27,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/{user_id}/role", get(get_role))
         .route("/{user_id}/profile", put(put_profile))
         .route("/{user_id}/profile", get(get_profile))
+        .route("/change-password", post(change_password))
         .layer(middleware::from_fn_with_state(state, jwt_auth_middleware))
 }
 
@@ -401,7 +402,7 @@ async fn get_profile(
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PutProfileRequest {
     username: String,
-    email: Option<String>,
+    email: String,
 }
 
 #[utoipa::path(
@@ -431,6 +432,13 @@ async fn put_profile(
     )
     .await?;
 
+    if p.email.is_empty() || p.username.is_empty() {
+        bail!(@BAD_REQUEST "all fields are required");
+    }
+    if !is_valid_email(&p.email) {
+        bail!(@BAD_REQUEST "invalid email");
+    }
+
     let user_id_int: i32 = user_id
         .parse()
         .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
@@ -450,6 +458,56 @@ async fn put_profile(
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ChangePasswordRequest {
+    old_password: String,
+    new_password: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/users/change-password",
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 200, body = ()),
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "user"
+)]
+async fn change_password(
+    state: State,
+    claims: Extension<Claims>,
+    Json(p): Json<ChangePasswordRequest>,
+) -> Result<()> {
+    if p.old_password.is_empty() || p.new_password.is_empty() {
+        bail!(@BAD_REQUEST "all fields are required");
+    }
+
+    let current_hash: String =
+        sqlx::query_scalar!(r#"SELECT password FROM users WHERE id = $1"#, claims.sub)
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+
+    verify_password(p.old_password, current_hash)?;
+
+    let new_password_hash = hash_password(p.new_password)?;
+
+    sqlx::query!(
+        r#"UPDATE users SET password = $1 WHERE id = $2"#,
+        new_password_hash,
+        claims.sub
+    )
+    .execute(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
     Ok(())
 }

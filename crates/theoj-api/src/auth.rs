@@ -89,13 +89,13 @@ pub fn hash_password(password: String) -> Result<String> {
     Ok(password_hash)
 }
 
-pub fn verify_password(password: String, password_hash: String) -> Result<bool> {
+pub fn verify_password(password: String, password_hash: String) -> Result<()> {
     let argon2 = Argon2::default();
     let parsed_hash = PasswordHash::new(&password_hash)?;
 
-    Ok(argon2
+    argon2
         .verify_password(password.as_bytes(), &parsed_hash)
-        .is_ok())
+        .map_err(|_| Error::msg("incorrect credentials").status_code(StatusCode::UNAUTHORIZED))
 }
 
 pub fn generate_strong_password() -> String {

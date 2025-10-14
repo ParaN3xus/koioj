@@ -46,6 +46,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         users::put_role,
         users::get_profile,
         users::put_profile,
+        users::change_password,
     ),
     modifiers(&JWTAuthAddon),
     tags(
