@@ -1,6 +1,5 @@
-import type { register } from "module";
 import { defineStore } from "pinia";
-import { type LoginResponse, type RegisterResponse, UserService } from "./theoj-api";
+import { type LoginResponse, OpenAPI, type RegisterResponse, UserService } from "./theoj-api";
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -25,6 +24,8 @@ export const useUserStore = defineStore("user", {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.userId);
+
+      OpenAPI.TOKEN = data.token;
     },
 
     async register(
