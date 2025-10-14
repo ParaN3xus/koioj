@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "generate-openapi": "cargo run --bin --no-default-features --bin gen_openapi ./openapi.json && npx openapi-typescript-codegen -i ./openapi.json -o crates/theoj-web/src/theoj-api",
-    "watch-theoj-api": "cargo watch -x \"run --no-default-features --bin theoj-api\" -i \"crates/theoj-web\"",
+    "watch-theoj-api": "watchexec -r -i \"crates/theoj-web/**\" \"cargo run --no-default-features --bin theoj-api\"",
     "dev": "vite crates/theoj-web",
     "build": "vue-tsc -b && vite build crates/theoj-web",
     "preview": "vite preview crates/theoj-web"
@@ -15,7 +15,8 @@
     "pinia": "^3.0.3",
     "theme-change": "^2.5.0",
     "vue": "^3.5.22",
-    "vue-router": "4"
+    "vue-router": "4",
+    "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.5",
