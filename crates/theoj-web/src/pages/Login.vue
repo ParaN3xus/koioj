@@ -1,27 +1,39 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+import { routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/user.mts";
+import { handleApiError } from "@/utils.mjs";
 
-const router = useRouter()
-const userStore = useUserStore()
+const toast = useToast();
+const router = useRouter();
+const userStore = useUserStore();
 
-const identifier = ref('')
-const password = ref('')
-const loading = ref(false)
+const identifier = ref("");
+const password = ref("");
+const loading = ref(false);
 
 const handleLogin = async () => {
-  loading.value = true
+  loading.value = true;
 
   try {
-    await userStore.login(identifier.value.trim(), password.value)
-    router.push('/')
-  } catch (_error) {
-    console.error(_error)
+    await userStore.login(identifier.value.trim(), password.value);
+    toast.success("Logged in!");
+    router.push(routeMap.index.path);
+  } catch (e) {
+    handleApiError(e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
+
+onMounted(() => {
+  if (userStore.isLoggedIn) {
+    toast.info("Already logged in!");
+    router.push(routeMap.index.path);
+  }
+});
 </script>
 
 <template>
@@ -58,7 +70,7 @@ const handleLogin = async () => {
 
       <div class="divider">Or</div>
       <div class="text-center">
-        <a href="/users/register" class="link">Don't have an account? Register now</a>
+        <a :href="routeMap.register.path" class="link">Don't have an account? Register now</a>
       </div>
 
     </div>

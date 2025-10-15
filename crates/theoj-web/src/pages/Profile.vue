@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { routeMap } from "@/routes.mjs";
 import {
   type GetProfileResponse,
   type PutProfileRequest,
@@ -13,6 +14,7 @@ import {
 import { useUserStore } from "@/user.mjs";
 import { handleApiError } from "@/utils.mjs";
 
+const router = useRouter();
 const toast = useToast();
 const userStore = useUserStore();
 const route = useRoute();
@@ -48,16 +50,19 @@ const loadUserData = async () => {
     const profileResponse = await UserService.getProfile(profileUserId.value);
     profileData.value = profileResponse;
 
-    toast.success("Profile loaded!")
+    toast.success("Profile loaded!");
   } catch (e) {
     handleApiError(e);
   } finally {
     isLoading.value = false;
   }
 };
-watch(() => route.params.id, () => {
-  loadUserData();
-});
+watch(
+  () => route.params.id,
+  () => {
+    loadUserData();
+  },
+);
 
 onMounted(() => {
   loadUserData();
@@ -129,7 +134,7 @@ const handleRoleToggle = async () => {
     await UserService.putRole(profileUserId.value, requestBody);
     userRole.value = newRole;
 
-    toast.success("Role changed!")
+    toast.success("Role changed!");
   } catch (e) {
     handleApiError(e);
   } finally {
@@ -137,12 +142,15 @@ const handleRoleToggle = async () => {
   }
 };
 
-const getRoleText = (role: UserRole) => {
-  return role.charAt(0).toUpperCase() + role.slice(1);
-};
+const roleText = computed(() => {
+  if (!userRole.value) {
+    return "unknown"
+  }
+  return userRole.value.charAt(0).toUpperCase() + userRole.value.slice(1);
+});
 
-const getRoleBadgeClass = (role: UserRole) => {
-  switch (role) {
+const roleBadgeClass = computed(() => {
+  switch (userRole.value) {
     case UserRole.ADMIN:
       return "badge-primary";
     case UserRole.TEACHER:
@@ -152,7 +160,7 @@ const getRoleBadgeClass = (role: UserRole) => {
     default:
       return "badge-ghost";
   }
-};
+});
 
 const handleUpdateBasicInfo = async () => {
   const formData: Record<string, string | undefined | null> = {};
@@ -168,32 +176,38 @@ const handleUpdateBasicInfo = async () => {
       userStore.userId,
       formData as PutProfileRequest,
     );
-    toast.success("Profile updated!")
+    toast.success("Profile updated!");
   } catch (e) {
     handleApiError(e);
   }
 };
 
 const handleLogout = async () => {
-  userStore.logout()
-}
+  userStore.logout();
+  toast.success("Logged out!");
+  router.push(routeMap.index.path);
+};
 
-const curPassword = ref('')
-const newPassword = ref('')
-const confirmNewpassword = ref('')
+const curPassword = ref("");
+const newPassword = ref("");
+const confirmNewpassword = ref("");
 
 const handleUpdatePassword = async () => {
+  if (confirmNewpassword.value !== newPassword.value) {
+    toast.error("Passwords do not match");
+    return;
+  }
+
   try {
     await UserService.changePassword({
       oldPassword: curPassword.value,
-      newPassword: newPassword.value
+      newPassword: newPassword.value,
     });
-    toast.success("Password changed!")
+    toast.success("Password changed!");
   } catch (e) {
     handleApiError(e);
   }
 };
-
 </script>
 
 <template>
@@ -214,8 +228,8 @@ const handleUpdatePassword = async () => {
             <div>
               <h2 class="text-2xl font-bold">
                 {{ profileData?.username }}
-                <span class="badge align-middle" :class="getRoleBadgeClass(userRole!)">
-                  {{ getRoleText(userRole!) }}
+                <span class="badge align-middle" :class="roleBadgeClass">
+                  {{ roleText }}
                 </span>
               </h2>
 

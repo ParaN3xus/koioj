@@ -1,20 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+import { routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/user.mts";
+import { handleApiError } from "@/utils.mjs";
 
-const router = useRouter()
-const userStore = useUserStore()
+const toast = useToast();
+const router = useRouter();
+const userStore = useUserStore();
 
-const email = ref('')
-const phone = ref('')
-const username = ref('')
-const userCode = ref('')
-const password = ref('')
-const loading = ref(false)
+const email = ref("");
+const phone = ref("");
+const username = ref("");
+const userCode = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const loading = ref(false);
 
 const handleRegister = async () => {
-  loading.value = true
+  loading.value = true;
+
+  if (confirmPassword.value !== password.value) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
   try {
     await userStore.register(
@@ -22,14 +32,23 @@ const handleRegister = async () => {
       phone.value.trim(),
       username.value.trim(),
       userCode.value.trim(),
-      password.value)
-    router.push('/')
-  } catch (_error) {
-    console.error(_error)
+      password.value,
+    );
+    toast.success("Registered!");
+    router.push(routeMap.index.path);
+  } catch (e) {
+    handleApiError(e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
+
+onMounted(() => {
+  if (userStore.isLoggedIn) {
+    toast.info("Already logged in!");
+    router.push(routeMap.index.path);
+  }
+});
 </script>
 
 <template>
@@ -80,6 +99,14 @@ const handleRegister = async () => {
             class="input input-bordered w-full" required />
         </div>
 
+        <div class="form-control mb-6">
+          <label class="label">
+            <span class="label-text">Confirm Password</span>
+          </label>
+          <input v-model="confirmPassword" type="password" autocomplete="current-password"
+            placeholder="Confirm your password" class="input input-bordered w-full" required />
+        </div>
+
         <div class="form-control mt-6">
           <button type="submit" class="btn btn-primary w-full" :disabled="loading">
             <div v-if="loading" class="loading loading-spinner" />
@@ -90,7 +117,7 @@ const handleRegister = async () => {
 
       <div class="divider">Or</div>
       <div class="text-center">
-        <a href="/register" class="link">Don't have an account? Register now</a>
+        <a :href="routeMap.login.path" class="link">Already have an account? Login now</a>
       </div>
 
     </div>

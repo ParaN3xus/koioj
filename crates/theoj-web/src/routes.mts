@@ -1,0 +1,56 @@
+import type {
+  RouteComponent,
+  RouteRecordRaw,
+} from "vue-router";
+import Index from "./pages/Index.vue";
+import Login from "./pages/Login.vue";
+import NotFound from "./pages/NotFound.vue";
+import Profile from "./pages/Profile.vue";
+import Register from "./pages/Register.vue";
+
+const createRoutes = <T extends Record<string, { path: string; component: RouteComponent; title: string }>>(
+  routeConfigs: T
+) => {
+  const routes = {} as Record<keyof T, RouteRecordRaw>;
+
+  Object.entries(routeConfigs).forEach(([name, { path, component, title }]) => {
+    routes[name as keyof T] = {
+      path,
+      name,
+      component,
+      meta: { title },
+    };
+  });
+
+  return routes;
+};
+
+export const routeMap = createRoutes({
+  index: {
+    path: "/",
+    component: Index,
+    title: "TheOJ - The Online Judge Platform",
+  },
+  login: {
+    path: "/users/login",
+    component: Login,
+    title: "Login - TheOJ",
+  },
+  register: {
+    path: "/users/register",
+    component: Register,
+    title: "Register - TheOJ",
+  },
+  profile: {
+    path: "/users/profile/:id",
+    component: Profile,
+    title: "Profile - TheOJ",
+  },
+  notFound: {
+    path: "/:pathMatch(.*)*",
+    component: NotFound,
+    title: "404 Not Found - TheOJ",
+  },
+});
+
+export const routes: RouteRecordRaw[] = Object.values(routeMap);
