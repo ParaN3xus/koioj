@@ -1,0 +1,348 @@
+<script setup lang="ts">
+import { Icon } from "@iconify/vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useToast } from "vue-toastification";
+import {
+  type GetProfileResponse,
+  type PutProfileRequest,
+  type PutRoleRequest,
+  UserRole,
+  UserService,
+} from "@/theoj-api";
+import { useUserStore } from "@/user.mjs";
+import { handleApiError } from "@/utils.mjs";
+
+const toast = useToast();
+const userStore = useUserStore();
+const route = useRoute();
+
+const profileUserId = computed(() => route.params.id as string);
+const isOwnProfile = computed(() => profileUserId.value === userStore.userId);
+
+const userRole = ref<UserRole | null>(null);
+const currentUserRole = ref<UserRole | null>(null);
+const profileData = ref<GetProfileResponse | null>(null);
+const isLoading = ref(true);
+
+const activeTab = ref<"basic" | "security">("basic");
+
+const canManageRole = computed(() => {
+  return currentUserRole.value === UserRole.ADMIN && !isOwnProfile.value;
+});
+
+const canViewDetails = computed(() => {
+  return (
+    currentUserRole.value === UserRole.ADMIN ||
+    currentUserRole.value === UserRole.TEACHER
+  );
+});
+
+const loadUserData = async () => {
+  isLoading.value = true;
+  try {
+    const currentRoleResponse = await UserService.getRole(userStore.userId);
+    currentUserRole.value = currentRoleResponse.role;
+    const roleResponse = await UserService.getRole(profileUserId.value);
+    userRole.value = roleResponse.role;
+    const profileResponse = await UserService.getProfile(profileUserId.value);
+    profileData.value = profileResponse;
+
+    toast.success("Profile loaded!")
+  } catch (e) {
+    handleApiError(e);
+  } finally {
+    isLoading.value = false;
+  }
+};
+watch(() => route.params.id, () => {
+  loadUserData();
+});
+
+onMounted(() => {
+  loadUserData();
+});
+
+const userBriefInfo = computed(() => [
+  {
+    icon: "fa6-solid:envelope",
+    value: profileData.value?.email,
+  },
+  {
+    icon: "fa6-solid:phone",
+    value: profileData.value?.phone,
+  },
+]);
+
+type FormField<T> = {
+  key: keyof T;
+  label: string;
+  type: string;
+  placeholder: string;
+  disabled: boolean;
+};
+
+const formFields = computed<FormField<GetProfileResponse>[]>(() => [
+  {
+    key: "username",
+    label: "Username",
+    type: "text",
+    placeholder: "Username",
+    disabled: false,
+  },
+  {
+    key: "email",
+    label: "Email",
+    type: "email",
+    placeholder: "Email",
+    disabled: false,
+  },
+  {
+    key: "phone",
+    label: "Phone",
+    type: "phone",
+    placeholder: "Phone",
+    disabled: true,
+  },
+  {
+    key: "userCode",
+    label: userRole.value === UserRole.TEACHER ? "Staff ID" : "Student ID",
+    type: "text",
+    placeholder: "ID",
+    disabled: true,
+  },
+]);
+
+const isRoleToggling = ref(false);
+const handleRoleToggle = async () => {
+  if (!userRole.value || isRoleToggling.value) return;
+
+  isRoleToggling.value = true;
+  try {
+    const newRole: UserRole =
+      userRole.value === UserRole.STUDENT ? UserRole.TEACHER : UserRole.STUDENT;
+
+    const requestBody: PutRoleRequest = {
+      userRole: newRole,
+    };
+
+    await UserService.putRole(profileUserId.value, requestBody);
+    userRole.value = newRole;
+
+    toast.success("Role changed!")
+  } catch (e) {
+    handleApiError(e);
+  } finally {
+    isRoleToggling.value = false;
+  }
+};
+
+const getRoleText = (role: UserRole) => {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+};
+
+const getRoleBadgeClass = (role: UserRole) => {
+  switch (role) {
+    case UserRole.ADMIN:
+      return "badge-primary";
+    case UserRole.TEACHER:
+      return "badge-secondary";
+    case UserRole.STUDENT:
+      return "badge-neutral";
+    default:
+      return "badge-ghost";
+  }
+};
+
+const handleUpdateBasicInfo = async () => {
+  const formData: Record<string, string | undefined | null> = {};
+
+  formFields.value.forEach((field) => {
+    if (!field.disabled && profileData.value?.[field.key] !== undefined) {
+      formData[field.key] = profileData.value[field.key];
+    }
+  });
+
+  try {
+    await UserService.putProfile(
+      userStore.userId,
+      formData as PutProfileRequest,
+    );
+    toast.success("Profile updated!")
+  } catch (e) {
+    handleApiError(e);
+  }
+};
+
+const handleLogout = async () => {
+  userStore.logout()
+}
+
+const curPassword = ref('')
+const newPassword = ref('')
+const confirmNewpassword = ref('')
+
+const handleUpdatePassword = async () => {
+  try {
+    await UserService.changePassword({
+      oldPassword: curPassword.value,
+      newPassword: newPassword.value
+    });
+    toast.success("Password changed!")
+  } catch (e) {
+    handleApiError(e);
+  }
+};
+
+</script>
+
+<template>
+  <div class="container mx-auto max-w-6xl px-4">
+    <!-- basic info -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <div v-if="isLoading" class="flex items-center justify-center py-8">
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
+
+        <div v-else class="flex items-center justify-between">
+          <div class="flex items-center gap-8">
+            <div class="w-20 h-20 flex items-center justify-center rounded-full bg-base-300">
+              <Icon icon="fa6-solid:user" width="32" />
+            </div>
+
+            <div>
+              <h2 class="text-2xl font-bold">
+                {{ profileData?.username }}
+                <span class="badge align-middle" :class="getRoleBadgeClass(userRole!)">
+                  {{ getRoleText(userRole!) }}
+                </span>
+              </h2>
+
+              <!-- details, only for teachers and admins -->
+              <div v-if="canViewDetails" class="mt-2 space-y-1 text-sm text-base-content/70">
+                <div v-for="item in userBriefInfo" :key="item.icon" class="flex items-center gap-2">
+                  <Icon :icon="item.icon" width="14" />
+                  <span>{{ item.value }}</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <Icon icon="fa6-solid:id-card" width="14" />
+                  <span>
+                    {{ userRole === UserRole.TEACHER ? 'Staff ID' : 'Student ID' }}:
+                    {{ profileData?.userCode }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- promote or demote, only for admins -->
+          <div v-if="canManageRole" class="flex flex-col items-end gap-2 mt-auto">
+            <div class="form-control">
+              <label class="label cursor-pointer gap-2">
+                <span class="label-text">
+                  {{ userRole === UserRole.STUDENT ? 'Promote to Teacher' : 'Demote to Student' }}
+                </span>
+                <input type="checkbox" class="toggle toggle-primary" :checked="userRole === UserRole.TEACHER"
+                  @change="handleRoleToggle" />
+              </label>
+            </div>
+          </div>
+
+          <!-- logout -->
+          <div v-if="isOwnProfile" class="flex flex-col items-end mt-auto gap-2">
+            <button class="btn" @click="handleLogout">
+              <Icon icon="fa7-solid:sign-out" width="16" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- settings -->
+    <div v-if="isOwnProfile && !isLoading" class="card bg-base-100 shadow-xl mt-6">
+      <div class="card-body">
+        <h3 class="card-title">Settings</h3>
+
+        <div class="flex gap-6 mt-4">
+          <!-- tabs -->
+          <div class="w-48 flex-shrink-0">
+            <ul class="menu bg-base-200 rounded-box space-y-2">
+              <li>
+                <a :class="{ 'active': activeTab === 'basic' }" @click="activeTab = 'basic'">
+                  <Icon icon="fa6-solid:user" width="16" />
+                  Basic Info
+                </a>
+              </li>
+              <li>
+                <a :class="{ 'active': activeTab === 'security' }" @click="activeTab = 'security'">
+                  <Icon icon="fa6-solid:lock" width="16" />
+                  Security
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex-1">
+            <!-- basic info -->
+            <div v-if="activeTab === 'basic'" class="space-y-2">
+              <h4 class="text-lg font-semibold">Basic Information</h4>
+
+              <div v-for="field in formFields" :key="field.key" class="form-control">
+                <label class="label">
+                  <span class="label-text">{{ field.label }}</span>
+                </label>
+                <input :type="field.type" :disabled="field.disabled" :placeholder="field.placeholder"
+                  class="input input-bordered" v-model="profileData![field.key]" />
+              </div>
+
+              <div>
+                <button class="btn btn-primary mt-4" @click="handleUpdateBasicInfo">
+                  <Icon icon="fa6-solid:floppy-disk" width="16" />
+                  Save Changes
+                </button>
+              </div>
+            </div>
+
+            <!-- security -->
+            <div v-if="activeTab === 'security'" class="space-y-2">
+              <h4 class="text-lg font-semibold">Change Password</h4>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Current Password</span>
+                </label>
+                <input type="password" v-model="curPassword" placeholder="Current password"
+                  class="input input-bordered" />
+              </div>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">New Password</span>
+                </label>
+                <input type="password" v-model="newPassword" placeholder="New password" class="input input-bordered" />
+              </div>
+
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text">Confirm New Password</span>
+                </label>
+                <input type="password" v-model="confirmNewpassword" placeholder="Confirm new password"
+                  class="input input-bordered" />
+              </div>
+
+              <div>
+                <button class="btn btn-primary mt-4" @click="handleUpdatePassword">
+                  <Icon icon="fa6-solid:key" width="16" />
+                  Update Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
