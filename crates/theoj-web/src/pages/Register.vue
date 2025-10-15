@@ -33,7 +33,7 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="card mx-auto my-auto w-1/2 min-w-96 bg-base-100 shadow-xl items-center justify-center">
+  <div class="card mx-auto my-auto w-1/2 min-w-96 max-w-6xl bg-base-100 shadow-xl items-center justify-center">
     <div class="card-body w-full ">
       <h2 class="card-title text-2xl font-bold text-center justify-center mb-6">
         Register

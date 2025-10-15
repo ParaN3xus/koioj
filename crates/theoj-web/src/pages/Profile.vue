@@ -197,7 +197,7 @@ const handleUpdatePassword = async () => {
 </script>
 
 <template>
-  <div class="container mx-auto max-w-6xl px-4">
+  <div class="container mx-auto max-w-6xl">
     <!-- basic info -->
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">

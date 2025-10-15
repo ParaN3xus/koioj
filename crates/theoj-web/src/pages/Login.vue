@@ -25,8 +25,8 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="card mx-auto my-auto w-1/2 min-w-96 bg-base-100 shadow-xl items-center justify-center">
-    <div class="card-body w-full ">
+  <div class="card mx-auto my-auto w-1/2 min-w-96 max-w-6xl bg-base-100 shadow-xl items-center justify-center">
+    <div class="card-body w-full">
       <h2 class="card-title text-2xl font-bold text-center justify-center mb-6">
         Login
       </h2>
@@ -58,7 +58,7 @@ const handleLogin = async () => {
 
       <div class="divider">Or</div>
       <div class="text-center">
-        <a href="/register" class="link">Don't have an account? Register now</a>
+        <a href="/users/register" class="link">Don't have an account? Register now</a>
       </div>
 
     </div>

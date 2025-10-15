@@ -21,7 +21,7 @@ if (userStore.isLoggedIn) {
 <template>
   <div class="min-h-screen flex flex-col bg-base-200">
     <Header />
-    <div class="flex-1 mx-auto w-full max-w-6xl px-8 py-8 lg:px-16 flex flex-col">
+    <div class="flex-1 mx-auto w-full max-w-6xl px-8 py-8 flex flex-col">
       <router-view />
     </div>
     <Footer />
