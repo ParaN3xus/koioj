@@ -4,8 +4,9 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/user.mts";
-import { handleApiError } from "@/utils.mjs";
+import { useApiErrorHandler } from "@/utils.mjs";
 
+const { handleApiError } = useApiErrorHandler();
 const toast = useToast();
 const router = useRouter();
 const userStore = useUserStore();

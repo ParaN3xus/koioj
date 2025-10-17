@@ -3,7 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import { routeMap } from "@/routes.mjs";
+import { routeMap, routes } from "@/routes.mjs";
 import {
   type GetProfileResponse,
   type PutProfileRequest,
@@ -12,8 +12,9 @@ import {
   UserService,
 } from "@/theoj-api";
 import { useUserStore } from "@/user.mjs";
-import { handleApiError } from "@/utils.mjs";
+import { useApiErrorHandler } from "@/utils.mjs";
 
+const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
 const toast = useToast();
 const userStore = useUserStore();
