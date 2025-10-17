@@ -49,6 +49,8 @@ export const useUserStore = defineStore("user", {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.userId);
+
+      OpenAPI.TOKEN = data.token;
     },
 
     logout(): void {
