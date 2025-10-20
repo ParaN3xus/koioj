@@ -23,6 +23,7 @@ pub fn top_routes() -> Router<Arc<AppState>> {
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
     Router::new()
+        .route("/{user_id}", delete(delete_user))
         .route("/{user_id}/role", put(put_role))
         .route("/{user_id}/role", get(get_role))
         .route("/{user_id}/profile", put(put_profile))
@@ -525,6 +526,53 @@ async fn change_password(
     tx.commit()
         .await
         .map_err(|e| Error::msg(format!("transaction commit error: {}", e)))?;
+
+    Ok(())
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/users/{user_id}",
+    params(
+        ("user_id" = String, Path)
+    ),
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, body = ()),
+    ),
+    tag = "user",
+)]
+async fn delete_user(
+    state: State,
+    claims: Extension<Claims>,
+    Path(user_id): Path<String>,
+) -> Result<()> {
+    check_permission(
+        &state.pool,
+        &claims,
+        Action::DeleteUser,
+        Resource::User(user_id.parse().unwrap()),
+    )
+    .await?;
+
+    let user_id_int: i32 = user_id
+        .parse()
+        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
+
+    let _updated = sqlx::query!(
+        r#"
+        UPDATE users
+        SET status = $1
+        WHERE id = $2 AND status = 'active'
+        RETURNING id
+        "#,
+        UserStatus::Inactive as UserStatus,
+        user_id_int
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
 
     Ok(())
 }

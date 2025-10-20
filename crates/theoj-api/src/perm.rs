@@ -22,6 +22,7 @@ pub enum Action {
     GetRole,
     PutProfile,
     GetProfile,
+    DeleteUser,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,6 +54,7 @@ pub async fn check_permission(
         (_, Action::GetRole, _) => true,
         (_, Action::GetProfile, _) => true,
         (_, Action::PutProfile, Resource::User(id_to_put)) => claims.sub == id_to_put,
+        (_, Action::DeleteUser, Resource::User(id_to_del)) => claims.sub == id_to_del,
         _ => false,
     };
 

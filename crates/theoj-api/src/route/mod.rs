@@ -1,4 +1,5 @@
 mod misc;
+mod problems;
 mod users;
 
 #[cfg(feature = "embed-frontend")]
@@ -19,7 +20,9 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         Router::new()
             .merge(misc::top_routes())
             .merge(users::top_routes())
-            .nest("/users", users::routes(state.clone())),
+            .merge(problems::top_routes())
+            .nest("/users", users::routes(state.clone()))
+            .nest("/problems", problems::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {
@@ -47,11 +50,13 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         users::get_profile,
         users::put_profile,
         users::change_password,
+        users::delete_user,
     ),
     modifiers(&JWTAuthAddon),
     tags(
         (name = "health"),
-        (name = "users")
+        (name = "users"),
+        (name = "problems"),
     ),
     components(
         schemas(ErrorResponse),
