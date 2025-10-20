@@ -2,6 +2,7 @@
 import { OpenAPI } from "@/theoj-api";
 import Footer from "./components/Footer.vue";
 import Header from "./components/Header.vue";
+import ModalContainer from "./components/Modal/ModalContainer.vue";
 import { useUserStore } from "./user.mts";
 
 if (import.meta.env.DEV) {
@@ -15,7 +16,6 @@ const userStore = useUserStore();
 if (userStore.isLoggedIn) {
   OpenAPI.TOKEN = userStore.token;
 }
-
 </script>
 
 <template>
@@ -26,6 +26,7 @@ if (userStore.isLoggedIn) {
     </div>
     <Footer />
   </div>
+  <ModalContainer />
 </template>
 
 <style scoped></style>

@@ -3,6 +3,8 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
+import { useModal } from "@/components/Modal/useModal.mjs";
 import { routeMap, routes } from "@/routes.mjs";
 import {
   type GetProfileResponse,
@@ -28,7 +30,25 @@ const currentUserRole = ref<UserRole | null>(null);
 const profileData = ref<GetProfileResponse | null>(null);
 const isLoading = ref(true);
 
-const activeTab = ref<"basic" | "security">("basic");
+const menuItems = [
+  {
+    key: "basic",
+    label: "Basic Info",
+    icon: "fa6-solid:user",
+  },
+  {
+    key: "security",
+    label: "Security",
+    icon: "fa6-solid:lock",
+  },
+  {
+    key: "delete",
+    label: "Delete Account",
+    icon: "fa7-solid:remove",
+  },
+] as const;
+type MenuKey = (typeof menuItems)[number]["key"];
+const activeTab = ref<MenuKey>("basic");
 
 const canManageRole = computed(() => {
   return currentUserRole.value === UserRole.ADMIN && !isOwnProfile.value;
@@ -145,7 +165,7 @@ const handleRoleToggle = async () => {
 
 const roleText = computed(() => {
   if (!userRole.value) {
-    return "unknown"
+    return "unknown";
   }
   return userRole.value.charAt(0).toUpperCase() + userRole.value.slice(1);
 });
@@ -205,6 +225,35 @@ const handleUpdatePassword = async () => {
       newPassword: newPassword.value,
     });
     toast.success("Password changed!");
+  } catch (e) {
+    handleApiError(e);
+  }
+};
+
+const { open: handleDeleteAccount, close: closeDeleteAccountModal } = useModal({
+  component: ConfirmModal,
+  attrs: {
+    title: "Are you sure to delete your account?",
+    reverseColors: true,
+    reverseOrder: true,
+    async onYes() {
+      await handleConfirmDeleteAccount();
+    },
+    onNo() {
+    },
+  },
+  slots: {
+    default:
+      "<p>Are you sure you want to delete your account? You will no longer be able to log in to your account.</p>",
+  },
+});
+
+const handleConfirmDeleteAccount = async () => {
+  try {
+    await UserService.deleteUser(userStore.userId);
+    userStore.logout();
+    toast.success("User deleted!");
+    router.push(routeMap.index.path);
   } catch (e) {
     handleApiError(e);
   }
@@ -285,16 +334,10 @@ const handleUpdatePassword = async () => {
           <!-- tabs -->
           <div class="w-48 flex-shrink-0">
             <ul class="menu bg-base-200 rounded-box space-y-2">
-              <li>
-                <a :class="{ 'active': activeTab === 'basic' }" @click="activeTab = 'basic'">
-                  <Icon icon="fa6-solid:user" width="16" />
-                  Basic Info
-                </a>
-              </li>
-              <li>
-                <a :class="{ 'active': activeTab === 'security' }" @click="activeTab = 'security'">
-                  <Icon icon="fa6-solid:lock" width="16" />
-                  Security
+              <li v-for="item in menuItems" :key="item.key">
+                <a :class="{ 'active': activeTab === item.key }" @click="activeTab = item.key">
+                  <Icon :icon="item.icon" width="16" />
+                  {{ item.label }}
                 </a>
               </li>
             </ul>
@@ -355,6 +398,17 @@ const handleUpdatePassword = async () => {
                 </button>
               </div>
             </div>
+
+            <div v-if="activeTab === 'delete'" class="space-y-2">
+              <h4 class="text-lg font-semibold">Delete Account</h4>
+              <div>
+                <button class="btn btn-error mt-4" @click="handleDeleteAccount">
+                  <Icon icon="fa7-solid:remove" width="16" />
+                  Delete Account
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

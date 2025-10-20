@@ -1,11 +1,12 @@
-import { createApp } from "vue";
-import "./style.css";
 import { createPinia } from "pinia";
+import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import Toast from "vue-toastification";
 import App from "./App.vue";
-import "vue-toastification/dist/index.css";
 import { routes } from "./routes.mts";
+
+import "./style.css";
+import "vue-toastification/dist/index.css";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,4 +38,9 @@ const toastOptions = {
   newestOnTop: true,
 };
 
-createApp(App).use(router).use(pinia).use(Toast, toastOptions).mount("#app");
+
+createApp(App)
+  .use(router)
+  .use(pinia)
+  .use(Toast, toastOptions)
+  .mount("#app");
