@@ -235,7 +235,7 @@ async fn put_role(
         r#"
         UPDATE users
         SET user_role = $1
-        WHERE id = $2
+        WHERE id = $2 AND status = 'active'
         RETURNING id
         "#,
         p.user_role as UserRole,
@@ -289,7 +289,7 @@ async fn get_role(
     let role = sqlx::query!(
         r#"
         SELECT user_role as "user_role: UserRole" FROM users
-        WHERE id = $1
+        WHERE id = $1 AND status = 'active'
         "#,
         user_id_int
     )
@@ -345,7 +345,7 @@ async fn get_profile(
     let requester_role = sqlx::query!(
         r#"
         SELECT user_role as "user_role: UserRole" FROM users
-        WHERE id = $1
+        WHERE id = $1 AND status = 'active'
         "#,
         requester_id
     )
@@ -447,7 +447,7 @@ async fn put_profile(
         r#"
         UPDATE users
         SET username = $1, email = $2
-        WHERE id = $3
+        WHERE id = $3 AND status = 'active'
         RETURNING id
         "#,
         p.username,
@@ -490,24 +490,41 @@ async fn change_password(
         bail!(@BAD_REQUEST "all fields are required");
     }
 
-    let current_hash: String =
-        sqlx::query_scalar!(r#"SELECT password FROM users WHERE id = $1"#, claims.sub)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+    let new_password_hash = hash_password(p.new_password)?;
+
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| Error::msg(format!("transaction error: {}", e)))?;
+
+    let current_hash: String = sqlx::query_scalar!(
+        r#"SELECT password FROM users WHERE id = $1 AND status = 'active' FOR UPDATE"#,
+        claims.sub
+    )
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
     verify_password(p.old_password, current_hash)?;
 
-    let new_password_hash = hash_password(p.new_password)?;
-
-    sqlx::query!(
-        r#"UPDATE users SET password = $1 WHERE id = $2"#,
+    let rows_affected = sqlx::query!(
+        r#"UPDATE users SET password = $1 WHERE id = $2 AND status = 'active'"#,
         new_password_hash,
         claims.sub
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .rows_affected();
+
+    if rows_affected == 0 {
+        bail!(@NOT_FOUND "user not found or inactive");
+    }
+
+    tx.commit()
+        .await
+        .map_err(|e| Error::msg(format!("transaction commit error: {}", e)))?;
 
     Ok(())
 }
