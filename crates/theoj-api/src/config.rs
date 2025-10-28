@@ -17,6 +17,7 @@ pub struct Config {
     pub jwt_secret: String,
     pub jwt_expiry: Duration,
     pub admin_password: Option<String>,
+    pub data_dir: String,
 }
 
 fn deserialize_log_level<'de, D>(deserializer: D) -> Result<Level, D::Error>

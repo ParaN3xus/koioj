@@ -1,28 +1,29 @@
 mod auth;
 pub mod config;
 pub mod error;
+mod models;
 mod perm;
 pub mod route;
 
-use crate::auth::{generate_strong_password, hash_password};
 use axum::{
     Extension,
     extract::{DefaultBodyLimit, connect_info::MockConnectInfo},
 };
 use config::Config;
 use error::{Error, Result};
+use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{
     ConnectOptions, PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use std::io;
+use std::{io, path::PathBuf};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
     sync::Arc,
     time::Instant,
 };
-use tokio::net::TcpListener;
+use tokio::{fs, net::TcpListener};
 use tower::ServiceBuilder;
 use tower_http::{
     cors::{self, CorsLayer},
@@ -32,6 +33,11 @@ use tower_http::{
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
+
+use crate::{
+    auth::{generate_strong_password, hash_password},
+    models::{ProblemContent, SolutionContent, SubmissionCode, TestCasesData},
+};
 
 pub type State = axum::extract::State<Arc<AppState>>;
 
@@ -102,6 +108,109 @@ impl AppState {
         .map_err(|e| Error::msg(format!("create admin account failed: {}", e)))?;
 
         Ok(())
+    }
+
+    fn get_data_path(&self, subdir: &str, id: i32) -> PathBuf {
+        PathBuf::from(&self.config.data_dir)
+            .join(subdir)
+            .join(format!("{}.json", id))
+    }
+
+    async fn write_json_data<T: Serialize>(&self, path: PathBuf, data: &T) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .await
+                .map_err(|e| Error::msg(format!("failed to create directory: {}", e)))?;
+        }
+
+        let json = serde_json::to_string_pretty(data)
+            .map_err(|e| Error::msg(format!("failed to serialize: {}", e)))?;
+
+        fs::write(&path, json)
+            .await
+            .map_err(|e| Error::msg(format!("failed to write file: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn read_json_data<T: DeserializeOwned>(&self, path: PathBuf) -> Result<T> {
+        let json = fs::read_to_string(&path)
+            .await
+            .map_err(|e| Error::msg(format!("failed to read file: {}", e)))?;
+
+        serde_json::from_str(&json).map_err(|e| Error::msg(format!("failed to deserialize: {}", e)))
+    }
+
+    fn get_problem_content_path(&self, problem_id: i32) -> PathBuf {
+        self.get_data_path("problems", problem_id)
+    }
+
+    fn get_test_cases_path(&self, problem_id: i32) -> PathBuf {
+        self.get_data_path("test_cases", problem_id)
+    }
+
+    fn get_solution_content_path(&self, solution_id: i32) -> PathBuf {
+        self.get_data_path("solutions", solution_id)
+    }
+
+    fn get_submission_code_path(&self, submission_id: i32) -> PathBuf {
+        self.get_data_path("submissions", submission_id)
+    }
+
+    pub async fn write_problem_content(
+        &self,
+        problem_id: i32,
+        content: &ProblemContent,
+    ) -> Result<()> {
+        let path = self.get_problem_content_path(problem_id);
+        self.write_json_data(path, content).await
+    }
+
+    pub async fn read_problem_content(&self, problem_id: i32) -> Result<ProblemContent> {
+        let path = self.get_problem_content_path(problem_id);
+        self.read_json_data(path).await
+    }
+
+    pub async fn write_test_cases(
+        &self,
+        problem_id: i32,
+        test_cases: &TestCasesData,
+    ) -> Result<()> {
+        let path = self.get_test_cases_path(problem_id);
+        self.write_json_data(path, test_cases).await
+    }
+
+    pub async fn read_test_cases(&self, problem_id: i32) -> Result<TestCasesData> {
+        let path = self.get_test_cases_path(problem_id);
+        self.read_json_data(path).await
+    }
+
+    pub async fn write_solution_content(
+        &self,
+        solution_id: i32,
+        content: &SolutionContent,
+    ) -> Result<()> {
+        let path = self.get_solution_content_path(solution_id);
+        self.write_json_data(path, content).await
+    }
+
+    pub async fn read_solution_content(&self, solution_id: i32) -> Result<SolutionContent> {
+        let path = self.get_solution_content_path(solution_id);
+        self.read_json_data(path).await
+    }
+
+    pub async fn write_submission_code(
+        &self,
+        submission_id: i32,
+        code: &SubmissionCode,
+    ) -> Result<()> {
+        let path = self.get_submission_code_path(submission_id);
+        self.write_json_data(path, code).await
+    }
+
+    pub async fn read_submission_code(&self, submission_id: i32) -> Result<SubmissionCode> {
+        let path = self.get_submission_code_path(submission_id);
+        self.read_json_data(path).await
     }
 }
 
