@@ -22,8 +22,8 @@ CREATE TABLE users (
     user_role user_role_enum NOT NULL,
     password VARCHAR(255) NOT NULL,
     status user_status_enum NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE problems (
@@ -32,14 +32,14 @@ CREATE TABLE problems (
     time_limit INTEGER NOT NULL,
     mem_limit INTEGER NOT NULL,
     status problem_status_enum NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE test_cases (
     id SERIAL PRIMARY KEY,
     problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE solutions (
@@ -47,8 +47,8 @@ CREATE TABLE solutions (
     problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
     author INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE contests (
@@ -60,14 +60,14 @@ CREATE TABLE contests (
     password VARCHAR(255),
     type contest_type_enum NOT NULL,
     status contest_status_enum NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE contest_participants (
     contest_id INTEGER NOT NULL REFERENCES contests(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (contest_id, user_id)
 );
 
@@ -80,8 +80,8 @@ CREATE TABLE submissions (
     result submission_result_enum NOT NULL DEFAULT 'pending',
     time_consumption INTEGER,
     mem_consumption INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE submission_test_cases (
@@ -95,7 +95,7 @@ CREATE TABLE contest_problems (
     contest_id INTEGER NOT NULL REFERENCES contests(id) ON DELETE CASCADE,
     problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
     number INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (contest_id, problem_id)
 );
 
@@ -103,20 +103,20 @@ CREATE TABLE training_plans (
     id SERIAL PRIMARY KEY,
     creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE training_plan_participants (
     plan_id INTEGER NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (plan_id, user_id)
 );
 
 CREATE TABLE training_plan_contests (
     plan_id INTEGER NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
     contest_id INTEGER NOT NULL REFERENCES contests(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (plan_id, contest_id)
 );
