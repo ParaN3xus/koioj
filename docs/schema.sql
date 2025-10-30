@@ -1,4 +1,4 @@
-CREATE TYPE user_role_enum AS ENUM ('admin', 'teacher', 'student');
+CREATE TYPE user_role_enum AS ENUM ('admin', 'teacher', 'student', 'guest');
 CREATE TYPE user_status_enum AS ENUM ('active', 'inactive');
 CREATE TYPE problem_status_enum AS ENUM ('active', 'hidden');
 CREATE TYPE contest_type_enum AS ENUM ('public', 'private');

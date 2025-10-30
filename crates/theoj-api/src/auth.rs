@@ -61,21 +61,58 @@ pub fn verify_jwt_token(
     Ok(token_data.claims)
 }
 
+fn extract_and_verify_jwt(request: &Request, jwt_secret: String) -> Result<Option<Claims>, Error> {
+    let auth_header = request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok());
+
+    match auth_header {
+        Some(header) => {
+            let token = header
+                .strip_prefix("Bearer ")
+                .ok_or(Error::msg("missing auth token").status_code(StatusCode::UNAUTHORIZED))?;
+
+            let claims = verify_jwt_token(token, jwt_secret)
+                .map_err(|_| Error::msg("invalid token").status_code(StatusCode::UNAUTHORIZED))?;
+
+            Ok(Some(claims))
+        }
+        None => Ok(None),
+    }
+}
+
+fn create_guest_claims() -> Claims {
+    let now = chrono::Utc::now().timestamp() as usize;
+    Claims {
+        sub: -1,
+        exp: now + 3600,
+        iat: now,
+    }
+}
+
 pub async fn jwt_auth_middleware(
     State(state): State<Arc<AppState>>,
     mut request: Request,
     next: Next,
 ) -> Result<Response> {
-    let auth_header = request
-        .headers()
-        .get(header::AUTHORIZATION)
-        .and_then(|h| h.to_str().ok())
+    let claims = extract_and_verify_jwt(&request, state.config.jwt_secret.clone())?
         .ok_or(Error::msg("missing auth header").status_code(StatusCode::UNAUTHORIZED))?;
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or(Error::msg("missing auth token").status_code(StatusCode::UNAUTHORIZED))?;
-    let claims = verify_jwt_token(token, state.config.jwt_secret.clone())
-        .map_err(|_| Error::msg("invalid token").status_code(StatusCode::UNAUTHORIZED))?;
+
+    request.extensions_mut().insert(claims);
+    Ok(next.run(request).await)
+}
+
+pub async fn jwt_auth_accept_guest_middleware(
+    State(state): State<Arc<AppState>>,
+    mut request: Request,
+    next: Next,
+) -> Result<Response> {
+    let claims = match extract_and_verify_jwt(&request, state.config.jwt_secret.clone())? {
+        Some(claims) => claims,
+        None => create_guest_claims(),
+    };
+
     request.extensions_mut().insert(claims);
     Ok(next.run(request).await)
 }

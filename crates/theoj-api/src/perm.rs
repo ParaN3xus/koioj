@@ -14,6 +14,7 @@ pub(crate) enum UserRole {
     Admin,
     Teacher,
     Student,
+    Guest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +28,7 @@ pub enum Action {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Resource {
+    Global,
     User(i32),
 }
 
