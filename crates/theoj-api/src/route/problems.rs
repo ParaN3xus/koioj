@@ -32,7 +32,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/{problem_id}/solutions/{solution_id}", get(get_solution))
         .merge(
             Router::new()
-                .route("", get(list_problems))
+                .route("/", get(list_problems))
                 .layer(middleware::from_fn_with_state(
                     state.clone(),
                     jwt_auth_accept_guest_middleware,
@@ -1401,7 +1401,7 @@ async fn get_ac_status(
     };
 
     Ok(Json(GetAcStatusResponse {
-       tried: status.is_some(),
-       status: status
+        tried: status.is_some(),
+        status: status,
     }))
 }
