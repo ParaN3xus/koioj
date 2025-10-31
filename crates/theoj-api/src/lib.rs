@@ -36,7 +36,7 @@ use uuid::Uuid;
 
 use crate::{
     auth::{generate_strong_password, hash_password},
-    models::{ProblemContent, SolutionContent, SubmissionCode, TestCasesData},
+    models::{ProblemContent, SolutionContent, SubmissionCode, TestCaseData},
 };
 
 pub type State = axum::extract::State<Arc<AppState>>;
@@ -145,8 +145,8 @@ impl AppState {
         self.get_data_path("problems", problem_id)
     }
 
-    fn get_test_cases_path(&self, problem_id: i32) -> PathBuf {
-        self.get_data_path("test_cases", problem_id)
+    fn get_test_case_path(&self, test_case_id: i32) -> PathBuf {
+        self.get_data_path("test_cases", test_case_id)
     }
 
     fn get_solution_content_path(&self, solution_id: i32) -> PathBuf {
@@ -173,15 +173,15 @@ impl AppState {
 
     pub async fn write_test_cases(
         &self,
-        problem_id: i32,
-        test_cases: &TestCasesData,
+        test_case_id: i32,
+        test_case: &TestCaseData,
     ) -> Result<()> {
-        let path = self.get_test_cases_path(problem_id);
-        self.write_json_data(path, test_cases).await
+        let path = self.get_test_case_path(test_case_id);
+        self.write_json_data(path, test_case).await
     }
 
-    pub async fn read_test_cases(&self, problem_id: i32) -> Result<TestCasesData> {
-        let path = self.get_test_cases_path(problem_id);
+    pub async fn read_test_cases(&self, test_case_id: i32) -> Result<TestCaseData> {
+        let path = self.get_test_case_path(test_case_id);
         self.read_json_data(path).await
     }
 

@@ -24,12 +24,73 @@ pub enum Action {
     PutProfile,
     GetProfile,
     DeleteUser,
+    CreateProblem,
+    PutProblem,
+    DeleteProblem,
+    GetTestCases,
+    AddTestCases,
+    CreateSolution,
+    DeleteSolution,
+    GetSubmission,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Resource {
     Global,
     User(i32),
+    Problem(i32),
+    Solution(i32),
+    Submission(i32),
+}
+
+impl Resource {
+    pub async fn owner_id(self, pool: &sqlx::PgPool) -> Result<i32> {
+        match self {
+            Resource::Global => Ok(1), // admin
+            Resource::User(id) => Ok(id),
+            Resource::Problem(_) => Ok(-1), // undefined
+            Resource::Solution(id) => {
+                let result = sqlx::query_scalar!("SELECT author FROM solutions WHERE id = $1", id)
+                    .fetch_one(pool)
+                    .await?;
+
+                Ok(result)
+            }
+            Resource::Submission(id) => {
+                let result =
+                    sqlx::query_scalar!("SELECT user_id FROM submissions WHERE id = $1", id)
+                        .fetch_one(pool)
+                        .await?;
+
+                Ok(result)
+            }
+        }
+    }
+}
+
+pub async fn role_of_claims(pool: &sqlx::PgPool, claims: &Claims) -> Result<UserRole> {
+    let user_role = match claims.sub {
+        -1 => UserRole::Guest,
+        _ => {
+            sqlx::query!(
+                r#"
+                SELECT user_role as "user_role: UserRole"
+                FROM users
+                WHERE id = $1
+                "#,
+                claims.sub
+            )
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| Error::msg(format!("database error: {}", e)))?
+            .ok_or_else(|| {
+                Error::msg("current user not found").status_code(StatusCode::UNAUTHORIZED)
+            })?
+            .user_role
+        }
+    };
+
+    Result::Ok(user_role)
 }
 
 pub async fn check_permission(
@@ -38,25 +99,28 @@ pub async fn check_permission(
     action: Action,
     resource: Resource,
 ) -> Result<()> {
-    let current_user = sqlx::query!(
-        r#"
-        SELECT user_role as "user_role: UserRole"
-        FROM users
-        WHERE id = $1
-        "#,
-        claims.sub
-    )
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .ok_or_else(|| Error::msg("current user not found").status_code(StatusCode::UNAUTHORIZED))?;
+    let user_role = role_of_claims(pool, claims).await?;
 
-    let has_permission = match (current_user.user_role, action, resource) {
+    let has_permission = match (user_role, action, resource) {
         (UserRole::Admin, _, _) => true,
         (_, Action::GetRole, _) => true,
         (_, Action::GetProfile, _) => true,
         (_, Action::PutProfile, Resource::User(id_to_put)) => claims.sub == id_to_put,
         (_, Action::DeleteUser, Resource::User(id_to_del)) => claims.sub == id_to_del,
+        (UserRole::Teacher, Action::CreateProblem, _) => true,
+        (UserRole::Teacher, Action::PutProblem, _) => true,
+        (UserRole::Teacher, Action::DeleteProblem, _) => true,
+        (UserRole::Teacher, Action::AddTestCases, _) => true,
+        (UserRole::Teacher, Action::GetTestCases, _) => true,
+        (UserRole::Teacher, Action::CreateSolution, _) => true,
+        (UserRole::Teacher, Action::DeleteSolution, solution) => {
+            claims.sub == solution.owner_id(pool).await?
+        }
+        (UserRole::Teacher, Action::GetSubmission, _) => true,
+        (UserRole::Student, Action::GetSubmission, submission) => {
+            claims.sub == submission.owner_id(pool).await?
+        }
+
         _ => false,
     };
 
