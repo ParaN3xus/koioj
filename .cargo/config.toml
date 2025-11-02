@@ -1,0 +1,25 @@
+# Cargo 镜像配置 - 使用中国科学技术大学镜像源
+
+[source.crates-io]
+replace-with = 'ustc'
+
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index"
+
+# 或者使用字节跳动镜像
+# [source.crates-io]
+# replace-with = 'rsproxy'
+# 
+# [source.rsproxy]
+# registry = "https://rsproxy.cn/crates.io-index"
+
+# 或者使用清华大学镜像
+# [source.crates-io]
+# replace-with = 'tuna'
+# 
+# [source.tuna]
+# registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+
+[net]
+git-fetch-with-cli = true
+

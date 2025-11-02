@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO problems (name, time_limit, mem_limit, status)\n        VALUES ($1, $2, $3, $4)\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4",
+        "Int4",
+        {
+          "Custom": {
+            "name": "problem_status_enum",
+            "kind": {
+              "Enum": [
+                "active",
+                "hidden"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f3bd89bce3b3ad851540f7bda534f3e133f870e3a0dfef65849a7cbb6de3f79d"
+}

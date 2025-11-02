@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE problems SET time_limit = $1 WHERE id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a35e623a930f1cc81da6c82edeebfc8cf9e36bc81c0a88f101ce09aeb8b2ff08"
+}

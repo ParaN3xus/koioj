@@ -5,12 +5,14 @@ import Header from "./components/Header.vue";
 import ModalContainer from "./components/Modal/ModalContainer.vue";
 import { useUserStore } from "./stores/user.mts";
 
+// 开发环境使用本地API，生产环境使用API_ROOT
 if (import.meta.env.DEV) {
   OpenAPI.BASE = "http://localhost:8080";
 } else {
   OpenAPI.BASE = window.API_ROOT || "";
 }
 
+// 从用户的本地存储中获取token，如果存在则设置到OpenAPI中
 const userStore = useUserStore();
 
 if (userStore.isLoggedIn) {
