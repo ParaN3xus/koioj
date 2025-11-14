@@ -1,78 +1,67 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
+import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { routeMap } from "@/routes.mjs";
 import {
-  type ListProblemsResponse,
+  type GetProblemResponse,
   ProblemService,
+  ProblemStatus,
   UserRole,
   UserService,
 } from "@/theoj-api";
 import { useUserStore } from "@/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
+const { renderMarkdown } = useMarkdownRenderer();
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 
-const currentUserRole = ref<UserRole | null>(null);
-const problemsData = ref<ListProblemsResponse | null>(null);
+const problemId = computed(() => route.params.id as string);
 const isLoading = ref(true);
+const currentUserRole = ref<UserRole | null>(null);
+const problemData = ref<GetProblemResponse | null>(null);
 
-const currentPage = ref(1);
-const pageSize = ref(10);
-
-const canAddProblem = computed(() => {
+const canEdit = computed(() => {
   return (
     currentUserRole.value === UserRole.ADMIN ||
     currentUserRole.value === UserRole.TEACHER
   );
 });
 
-const totalPages = computed(() => {
-  if (!problemsData.value?.total) return 0;
-  return Math.ceil(problemsData.value.total / pageSize.value);
-});
-
-const loadProblems = async () => {
+const loadProblemData = async () => {
   isLoading.value = true;
   try {
-    const roleResponse = await UserService.getRole(userStore.userId);
+    const [roleResponse, problemResponse] = await Promise.all([
+      UserService.getRole(userStore.userId),
+      ProblemService.getProblem(problemId.value),
+    ]);
+
     currentUserRole.value = roleResponse.role;
-
-    const response = await ProblemService.listProblems(
-      currentPage.value,
-      pageSize.value,
-    );
-    problemsData.value = response;
-
-    toast.success("Problems loaded!");
+    problemData.value = problemResponse;
   } catch (e) {
     handleApiError(e);
+    router.push(routeMap.index.path);
   } finally {
     isLoading.value = false;
   }
 };
 
 onMounted(() => {
-  loadProblems();
+  loadProblemData();
 });
 
-const handleAddProblem = () => {
-  router.push(routeMap.createProblem.path);
+const handleEdit = () => {
+  router.push(`/problems/${problemId.value}/edit`);
 };
 
-const handleViewProblem = (problemId: string) => {
-  router.push(`/problems/${problemId}`);
-};
-
-const handlePageChange = (page: number) => {
-  currentPage.value = page;
-  loadProblems();
+const handleSubmit = () => {
+  router.push(`/problems/${problemId.value}/submit`);
 };
 </script>
 
@@ -80,63 +69,126 @@ const handlePageChange = (page: number) => {
   <div class="container mx-auto max-w-6xl">
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="card-title">
-            Problems
-          </h2>
-
-          <button v-if="canAddProblem" class="btn btn-primary" @click="handleAddProblem">
-            <Icon icon="fa6-solid:plus" width="16" />
-            Add Problem
-          </button>
-        </div>
-
+        <!-- Loading State -->
         <div v-if="isLoading" class="flex items-center justify-center py-8">
           <span class="loading loading-spinner loading-lg"></span>
         </div>
 
-        <!-- Problems Table -->
-        <div v-else-if="problemsData?.problems.length" class="overflow-x-auto">
-          <table class="table table-zebra">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="problem in problemsData.problems" :key="problem.problemId">
-                <td>{{ problem.problemId }}</td>
-                <td>
-                  <router-link :to="`/problems/${problem.problemId}`" class="link link-primary font-semibold">
-                    {{ problem.name }}
-                  </router-link>
-                </td>
-                <td class="text-right">
-                  <router-link :to="`/problems/${problem.problemId}`" class="btn btn-ghost btn-sm">
-                    <Icon icon="fa6-solid:arrow-right" width="16" />
-                  </router-link>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- Problem Content -->
+        <div v-else-if="problemData" class="space-y-6">
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <h1 class="text-3xl font-bold mb-2">
+                {{ problemData.name }}
+              </h1>
+              <div class="flex items-center gap-4 text-sm text-base-content/70">
+                <div class="flex items-center gap-1">
+                  <Icon icon="fa7-solid:clock" width="14" />
+                  <span>{{ problemData.timeLimit }}ms</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <Icon icon="fa7-solid:memory" width="14" />
+                  <span>{{ problemData.memLimit }}MB</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <Icon icon="fa7-solid:hashtag" width="14" />
+                  <span>{{ problemData.problemId }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button v-if="canEdit" class="btn btn-sm" @click="handleEdit">
+                <Icon icon="fa7-solid:pen-to-square" width="14" />
+                Edit
+              </button>
+              <button class="btn btn-sm btn-primary" @click="handleSubmit">
+                <Icon icon="fa7-solid:code" width="14" />
+                Submit
+              </button>
+            </div>
+          </div>
 
+          <div class="divider"></div>
 
-        <!-- Empty -->
-        <div v-else class="flex flex-col items-center justify-center py-12 text-base-content/70">
-          <Icon icon="fa6-solid:inbox" width="48" class="mb-4" />
-          <p>No problems found</p>
-        </div>
+          <!-- Description -->
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <Icon icon="fa7-solid:book" width="20" />
+              Description
+            </h2>
+            <div class="prose max-w-none" v-html="renderMarkdown(problemData.description)"></div>
+          </div>
 
-        <Pagination v-if="!isLoading && problemsData?.problems.length" :current-page="currentPage"
-          :last-page="totalPages" @page-change="handlePageChange" />
+          <div class="divider"></div>
 
-        <!-- Total Info -->
-        <div v-if="!isLoading && problemsData?.problems.length" class="text-center text-sm text-base-content/70 mt-2">
-          Page {{ currentPage }} of {{ totalPages }} (Total:
-          {{ problemsData.total }} problems)
+          <!-- Input Description -->
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <Icon icon="fa7-solid:arrow-right-to-bracket" width="20" />
+              Input
+            </h2>
+            <div class="prose max-w-none" v-html="renderMarkdown(problemData.inputDescription)"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Output Description -->
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <Icon icon="fa7-solid:arrow-right-from-bracket" width="20" />
+              Output
+            </h2>
+            <div class="prose max-w-none" v-html="renderMarkdown(problemData.outputDescription)"></div>
+          </div>
+
+          <!-- Sample Cases -->
+          <div v-if="problemData.samples && problemData.samples.length > 0">
+            <div class="divider"></div>
+            <div class="space-y-4">
+              <h2 class="text-xl font-semibold flex items-center gap-2">
+                <Icon icon="fa7-solid:flask" width="20" />
+                Sample Cases
+              </h2>
+              <div v-for="(sample, index) in problemData.samples" :key="index" class="space-y-2">
+                <h3 class="font-semibold text-base">Sample {{ index + 1 }}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-sm font-medium mb-1">Input:</div>
+                    <pre
+                      class="bg-base-200 p-3 rounded-lg overflow-x-auto text-sm"><code>{{ sample.input }}</code></pre>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium mb-1">Output:</div>
+                    <pre
+                      class="bg-base-200 p-3 rounded-lg overflow-x-auto text-sm"><code>{{ sample.output }}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note (if exists) -->
+          <div v-if="problemData.note">
+            <div class="divider"></div>
+            <div class="space-y-4">
+              <h2 class="text-xl font-semibold flex items-center gap-2">
+                <Icon icon="fa7-solid:note-sticky" width="20" />
+                Note
+              </h2>
+              <div class="prose max-w-none" v-html="renderMarkdown(problemData.note)"></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-end gap-2">
+            <button class="btn btn-primary btn-lg" @click="handleSubmit">
+              <Icon icon="fa7-solid:code" width="18" />
+              Submit Solution
+            </button>
+          </div>
         </div>
       </div>
     </div>

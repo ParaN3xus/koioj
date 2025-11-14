@@ -3,7 +3,7 @@ import EditProblem from "./pages/EditProblem.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
 import NotFound from "./pages/NotFound.vue";
-import Problem from "./pages/Problem.vue";
+import ProblemList from "./pages/ProblemList.vue";
 import Profile from "./pages/Profile.vue";
 import Register from "./pages/Register.vue";
 
@@ -50,9 +50,9 @@ export const routeMap = createRoutes({
     component: Profile,
     title: "Profile - TheOJ",
   },
-  problem: {
+  problemList: {
     path: "/problem",
-    component: Problem,
+    component: ProblemList,
     title: "Problem - TheOJ",
   },
   createProblem: {
