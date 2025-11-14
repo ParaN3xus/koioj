@@ -3,6 +3,7 @@ import EditProblem from "./pages/EditProblem.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
 import NotFound from "./pages/NotFound.vue";
+import Problem from "./pages/Problem.vue";
 import ProblemList from "./pages/ProblemList.vue";
 import Profile from "./pages/Profile.vue";
 import Register from "./pages/Register.vue";
@@ -60,6 +61,16 @@ export const routeMap = createRoutes({
     component: EditProblem,
     title: "Problem - TheOJ",
   },
+  problem: {
+    path: "/problem/:id",
+    component: Problem,
+    title: "Problem - TheOJ",
+  },
+  editProblem: {
+    path: "/problem/:id/edit",
+    component: EditProblem,
+    title: "Edit Problem - TheOJ",
+  },
   notFound: {
     path: "/:pathMatch(.*)*",
     component: NotFound,
@@ -68,3 +79,13 @@ export const routeMap = createRoutes({
 });
 
 export const routes: RouteRecordRaw[] = Object.values(routeMap);
+
+export function buildPath(base: string, params: Record<string, string | number>): string {
+  let path = base;
+
+  for (const [key, value] of Object.entries(params)) {
+    path = path.replace(`:${key}`, String(value));
+  }
+
+  return path;
+}

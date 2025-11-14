@@ -7,7 +7,7 @@ import { useToast } from "vue-toastification";
 import PreviewableTextEdit from "@/components/PreviewableTextEdit.vue";
 import TestCaseEditor from "@/components/TestCaseEditor.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
-import { routeMap } from "@/routes.mjs";
+import { buildPath, routeMap } from "@/routes.mjs";
 import {
   type CreateProblemRequest,
   type GetProblemResponse,
@@ -285,7 +285,7 @@ const handleSave = async () => {
       }
 
       toast.success("Problem created successfully!");
-      router.push(`/problems/${response.problemId}`);
+      router.push(buildPath(routeMap.problem.path, { id: response.problemId }));
     }
   } catch (e) {
     handleApiError(e);

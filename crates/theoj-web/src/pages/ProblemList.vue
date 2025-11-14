@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
-import { routeMap } from "@/routes.mjs";
+import { buildPath, routeMap } from "@/routes.mjs";
 import {
   type ListProblemsResponse,
   ProblemService,
@@ -67,7 +67,7 @@ const handleAddProblem = () => {
 };
 
 const handleViewProblem = (problemId: string) => {
-  router.push(`/problems/${problemId}`);
+  router.push(buildPath(routeMap.problem.path, { id: problemId }));
 };
 
 const handlePageChange = (page: number) => {
@@ -109,12 +109,14 @@ const handlePageChange = (page: number) => {
               <tr v-for="problem in problemsData.problems" :key="problem.problemId">
                 <td>{{ problem.problemId }}</td>
                 <td>
-                  <router-link :to="`/problems/${problem.problemId}`" class="link link-primary font-semibold">
+                  <router-link :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
+                    class="link link-primary font-semibold">
                     {{ problem.name }}
                   </router-link>
                 </td>
                 <td class="text-right">
-                  <router-link :to="`/problems/${problem.problemId}`" class="btn btn-ghost btn-sm">
+                  <router-link :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
+                    class="btn btn-ghost btn-sm">
                     <Icon icon="fa6-solid:arrow-right" width="16" />
                   </router-link>
                 </td>

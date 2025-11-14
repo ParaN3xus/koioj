@@ -5,7 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
-import { routeMap } from "@/routes.mjs";
+import { buildPath, routeMap } from "@/routes.mjs";
 import {
   type GetProblemResponse,
   ProblemService,
@@ -27,7 +27,7 @@ const isLoading = ref(true);
 const currentUserRole = ref<UserRole | null>(null);
 const problemData = ref<GetProblemResponse | null>(null);
 
-const canEdit = computed(() => {
+const isAdminOrTeacher = computed(() => {
   return (
     currentUserRole.value === UserRole.ADMIN ||
     currentUserRole.value === UserRole.TEACHER
@@ -57,11 +57,15 @@ onMounted(() => {
 });
 
 const handleEdit = () => {
-  router.push(`/problems/${problemId.value}/edit`);
+  router.push(buildPath(routeMap.editProblem.path, { id: problemId.value }));
 };
 
 const handleSubmit = () => {
-  router.push(`/problems/${problemId.value}/submit`);
+  // router.push(buildPath(routeMap.problem.path, { id: problemId.value }));
+};
+
+const handleSolutions = () => {
+  // router.push(buildPath(routeMap.problem.path, { id: problemId.value }));
 };
 </script>
 
@@ -98,11 +102,15 @@ const handleSubmit = () => {
               </div>
             </div>
             <div class="flex gap-2">
-              <button v-if="canEdit" class="btn btn-sm" @click="handleEdit">
+              <button v-if="isAdminOrTeacher" class="btn btn-sm w-28" @click="handleEdit">
                 <Icon icon="fa7-solid:pen-to-square" width="14" />
                 Edit
               </button>
-              <button class="btn btn-sm btn-primary" @click="handleSubmit">
+              <button class="btn btn-sm w-28" @click="handleSolutions">
+                <Icon icon="fa7-solid:lightbulb" width="14" />
+                Solutions
+              </button>
+              <button class="btn btn-sm btn-primary w-28" @click="handleSubmit">
                 <Icon icon="fa7-solid:code" width="14" />
                 Submit
               </button>
@@ -180,15 +188,6 @@ const handleSubmit = () => {
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <!-- Action Buttons -->
-          <div class="flex justify-end gap-2">
-            <button class="btn btn-primary btn-lg" @click="handleSubmit">
-              <Icon icon="fa7-solid:code" width="18" />
-              Submit Solution
-            </button>
-          </div>
         </div>
       </div>
     </div>
