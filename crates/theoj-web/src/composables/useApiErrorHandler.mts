@@ -1,7 +1,7 @@
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import { routeMap } from "./routes.mts";
-import type { ApiError } from "./theoj-api";
+import { routeMap } from "../routes.mts";
+import type { ApiError } from "../theoj-api";
 
 export function useApiErrorHandler() {
   const router = useRouter();

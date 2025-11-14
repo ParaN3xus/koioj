@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import PreviewableTextEdit from "@/components/PreviewableTextEdit.vue";
 import TestCaseEditor from "@/components/TestCaseEditor.vue";
+import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { routeMap } from "@/routes.mjs";
 import {
   type CreateProblemRequest,
@@ -18,7 +19,6 @@ import {
   UserService,
 } from "@/theoj-api";
 import { useUserStore } from "@/user.mjs";
-import { useApiErrorHandler } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();

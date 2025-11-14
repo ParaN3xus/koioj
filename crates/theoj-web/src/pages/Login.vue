@@ -2,9 +2,9 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/user.mts";
-import { useApiErrorHandler } from "@/utils.mjs";
 
 const toast = useToast();
 const router = useRouter();

@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
+import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { routeMap, routes } from "@/routes.mjs";
 import {
   type GetProfileResponse,
@@ -14,7 +15,6 @@ import {
   UserService,
 } from "@/theoj-api";
 import { useUserStore } from "@/user.mjs";
-import { useApiErrorHandler } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -239,8 +239,7 @@ const { open: handleDeleteAccount, close: closeDeleteAccountModal } = useModal({
     async onYes() {
       await handleConfirmDeleteAccount();
     },
-    onNo() {
-    },
+    onNo() { },
   },
   slots: {
     default:

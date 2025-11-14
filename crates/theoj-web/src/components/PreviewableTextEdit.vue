@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { marked } from "marked";
-import markedKatex from "marked-katex-extension";
 import { computed } from "vue";
-import "katex/dist/katex.min.css";
+import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 
 interface Props {
   modelValue: string;
@@ -28,28 +26,7 @@ const localValue = computed({
   set: (value) => emit("update:modelValue", value),
 });
 
-const renderer = new marked.Renderer();
-renderer.heading = ({ text, depth }) => {
-  if (depth < 3) {
-    depth = 3;
-  }
-  return `<h${depth}>${text}</h${depth}>`;
-};
-renderer.html = () => '';
-marked.use(
-  markedKatex({
-    throwOnError: false,
-  })
-);
-marked.use({
-  breaks: true,
-  gfm: true,
-  renderer: renderer,
-});
-
-const renderMarkdown = (text: string) => {
-  return marked(text);
-};
+const { renderMarkdown } = useMarkdownRenderer();
 
 const textareaClass = computed(() => {
   const baseClass = "textarea textarea-bordered w-full";
@@ -57,7 +34,6 @@ const textareaClass = computed(() => {
   return `${baseClass} ${heightClass}`;
 });
 </script>
-
 
 <template>
   <div class="grid grid-cols-1 gap-4" :class="{ 'lg:grid-cols-2': showPreview }">

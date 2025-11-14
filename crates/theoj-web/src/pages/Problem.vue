@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import Pagination from "@/components/Pagination.vue";
+import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { routeMap } from "@/routes.mjs";
 import {
   type ListProblemsResponse,
@@ -12,7 +13,6 @@ import {
   UserService,
 } from "@/theoj-api";
 import { useUserStore } from "@/user.mjs";
-import { useApiErrorHandler } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
