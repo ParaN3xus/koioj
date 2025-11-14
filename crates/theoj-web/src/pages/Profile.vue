@@ -34,7 +34,7 @@ const menuItems = [
   {
     key: "basic",
     label: "Basic Info",
-    icon: "fa6-solid:user",
+    icon: "fa7-solid:user",
   },
   {
     key: "security",
@@ -91,11 +91,11 @@ onMounted(() => {
 
 const userBriefInfo = computed(() => [
   {
-    icon: "fa6-solid:envelope",
+    icon: "fa7-solid:envelope",
     value: profileData.value?.email,
   },
   {
-    icon: "fa6-solid:phone",
+    icon: "fa7-solid:phone",
     value: profileData.value?.phone,
   },
 ]);
@@ -272,7 +272,7 @@ const handleConfirmDeleteAccount = async () => {
         <div v-else class="flex items-center justify-between">
           <div class="flex items-center gap-8">
             <div class="w-20 h-20 flex items-center justify-center rounded-full bg-base-300">
-              <Icon icon="fa6-solid:user" width="32" />
+              <Icon icon="fa7-solid:user" width="32" />
             </div>
 
             <div>
@@ -291,7 +291,7 @@ const handleConfirmDeleteAccount = async () => {
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <Icon icon="fa6-solid:id-card" width="14" />
+                  <Icon icon="fa7-solid:id-card" width="14" />
                   <span>
                     {{ userRole === UserRole.TEACHER ? 'Staff ID' : 'Student ID' }}:
                     {{ profileData?.userCode }}
@@ -358,7 +358,7 @@ const handleConfirmDeleteAccount = async () => {
 
               <div>
                 <button class="btn btn-primary mt-4" @click="handleUpdateBasicInfo">
-                  <Icon icon="fa6-solid:floppy-disk" width="16" />
+                  <Icon icon="fa7-solid:floppy-disk" width="16" />
                   Save Changes
                 </button>
               </div>
@@ -393,7 +393,7 @@ const handleConfirmDeleteAccount = async () => {
 
               <div>
                 <button class="btn btn-primary mt-4" @click="handleUpdatePassword">
-                  <Icon icon="fa6-solid:key" width="16" />
+                  <Icon icon="fa7-solid:key" width="16" />
                   Update Password
                 </button>
               </div>
