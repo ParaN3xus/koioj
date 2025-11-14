@@ -51,7 +51,7 @@ const userStore = useUserStore();
           <RouterLink class="flex items-center btn btn-ghost btn-circle justify-center rounded-full"
             :to="`/users/profile/${userStore.userId}`">
             <div class="w-10 h-10 flex items-center justify-center rounded-full bg-base-300 ">
-              <Icon icon="fa6-solid:user" width="16" />
+              <Icon icon="fa7-solid:user" width="16" />
             </div>
           </RouterLink>
         </template>
