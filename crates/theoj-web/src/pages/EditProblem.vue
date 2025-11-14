@@ -470,7 +470,7 @@ const handleCancel = () => {
               <h4 class="text-sm font-semibold mb-2 text-base-content/70">
                 Existing Test Cases ({{ existingTestCases.length }})
               </h4>
-              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div class="flex flex-wrap gap-4">
                 <div v-for="testCase in existingTestCases" :key="testCase" class="badge badge-lg badge-neutral gap-2">
                   <Icon icon="fa7-solid:check" width="12" />
                   Test {{ testCase }}
