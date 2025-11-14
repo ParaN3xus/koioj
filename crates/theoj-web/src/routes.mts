@@ -1,15 +1,19 @@
-import type {
-  RouteComponent,
-  RouteRecordRaw,
-} from "vue-router";
+import type { RouteComponent, RouteRecordRaw } from "vue-router";
+import EditProblem from "./pages/EditProblem.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
 import NotFound from "./pages/NotFound.vue";
+import Problem from "./pages/Problem.vue";
 import Profile from "./pages/Profile.vue";
 import Register from "./pages/Register.vue";
 
-const createRoutes = <T extends Record<string, { path: string; component: RouteComponent; title: string }>>(
-  routeConfigs: T
+const createRoutes = <
+  T extends Record<
+    string,
+    { path: string; component: RouteComponent; title: string }
+  >,
+>(
+  routeConfigs: T,
 ) => {
   const routes = {} as Record<keyof T, RouteRecordRaw>;
 
@@ -45,6 +49,16 @@ export const routeMap = createRoutes({
     path: "/users/profile/:id",
     component: Profile,
     title: "Profile - TheOJ",
+  },
+  problem: {
+    path: "/problem",
+    component: Problem,
+    title: "Problem - TheOJ",
+  },
+  createProblem: {
+    path: "/problem/new",
+    component: EditProblem,
+    title: "Problem - TheOJ",
   },
   notFound: {
     path: "/:pathMatch(.*)*",
