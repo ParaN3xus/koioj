@@ -91,7 +91,7 @@ pub(crate) struct CreateProblemResponse {
 
 #[utoipa::path(
     post,
-    path = "/api/",
+    path = "/api/problems",
     request_body = CreateProblemRequest,
     responses(
         (status = 200, body = CreateProblemResponse),
