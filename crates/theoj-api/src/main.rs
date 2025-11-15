@@ -1,5 +1,6 @@
 use std::fs::File;
-use theoj_api::{config::Config, error::Result, init_log, start_api};
+use theoj_api::{config::Config, error::Result, start_api};
+use theoj_common::utils::init_log;
 
 fn main() -> Result<()> {
     dotenvy::dotenv()?;
@@ -15,7 +16,7 @@ fn main() -> Result<()> {
         .expect("failed to build tokio runtime");
     let _enter_guard = runtime.enter();
 
-    let _log_guard = init_log(&config);
+    let _log_guard = init_log(&config.log_file, config.log_level);
 
     runtime.block_on(start_api(config))
 }

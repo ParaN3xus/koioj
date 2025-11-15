@@ -34,8 +34,11 @@ argon2.workspace = true
 regex.workspace = true
 passwords.workspace = true
 mime_guess.workspace = true
+rand.workspace = true
+futures.workspace = true
 
 theoj-web = { path = "../theoj-web", optional = true, default-features = false }
+theoj-common.workspace = true
 
 [features]
 default = ["embed-frontend"]

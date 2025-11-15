@@ -16,27 +16,26 @@ use sqlx::{
     ConnectOptions, PgPool,
     postgres::{PgConnectOptions, PgPoolOptions},
 };
-use std::{io, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     str::FromStr,
     sync::Arc,
     time::Instant,
 };
-use tokio::{fs, net::TcpListener};
+use tokio::{fs, net::TcpListener, sync::RwLock};
 use tower::ServiceBuilder;
 use tower_http::{
     cors::{self, CorsLayer},
     normalize_path::NormalizePathLayer,
     trace::TraceLayer,
 };
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
 use crate::{
     auth::{generate_strong_password, hash_password},
     models::{ProblemContent, SolutionContent, SubmissionCode, TestCaseData},
+    route::judge::JudgeConnection,
 };
 
 pub type State = axum::extract::State<Arc<AppState>>;
@@ -45,6 +44,8 @@ pub struct AppState {
     pub config: Arc<Config>,
     pool: PgPool,
     pub started: Instant,
+
+    pub judges: Arc<RwLock<HashMap<String, JudgeConnection>>>,
 }
 
 impl AppState {
@@ -60,6 +61,7 @@ impl AppState {
             config: config,
             pool: pool,
             started: Instant::now(),
+            judges: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -212,24 +214,6 @@ impl AppState {
         let path = self.get_submission_code_path(submission_id);
         self.read_json_data(path).await
     }
-}
-
-pub fn init_log(config: &Config) -> WorkerGuard {
-    let file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&config.log_file)
-        .expect("failed to open the log file!");
-    let (non_blocking, guard) = tracing_appender::non_blocking(file);
-
-    tracing_subscriber::registry()
-        .with(fmt::layer().with_writer(io::stdout)) // stdout layer
-        .with(fmt::layer().with_writer(non_blocking).with_ansi(false)) // file layer
-        .with(EnvFilter::from_default_env().add_directive(config.log_level.into()))
-        .init();
-    tracing::info!("log inited!");
-
-    guard
 }
 
 pub async fn start_api(config: Config) -> Result<()> {

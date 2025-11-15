@@ -1,7 +1,6 @@
-use std::str::FromStr;
-
 use chrono::Duration;
 use serde::Deserialize;
+use theoj_common::utils::deserialize_log_level;
 use tracing::Level;
 
 #[derive(Deserialize)]
@@ -18,12 +17,4 @@ pub struct Config {
     pub jwt_expiry: Duration,
     pub admin_password: Option<String>,
     pub data_dir: String,
-}
-
-fn deserialize_log_level<'de, D>(deserializer: D) -> Result<Level, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    Level::from_str(&s).map_err(serde::de::Error::custom)
 }

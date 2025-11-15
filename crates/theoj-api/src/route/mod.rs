@@ -1,3 +1,4 @@
+pub mod judge;
 mod misc;
 mod problems;
 mod users;
@@ -22,7 +23,8 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
             .merge(users::top_routes())
             .merge(problems::top_routes())
             .nest("/users", users::routes(state.clone()))
-            .nest("/problems", problems::routes(state.clone())),
+            .nest("/problems", problems::routes(state.clone()))
+            .nest("/judge", judge::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {
@@ -66,6 +68,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         problems::list_submissions,
         problems::get_submission,
         problems::get_ac_status,
+        judge::judge_ws
     ),
     modifiers(&JWTAuthAddon),
     tags(

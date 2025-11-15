@@ -10,3 +10,16 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+sysinfo.workspace = true
+
+theoj-common.workspace = true

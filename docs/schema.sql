@@ -86,9 +86,11 @@ CREATE TABLE submissions (
 
 CREATE TABLE submission_test_cases (
     submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
-    sample_id INTEGER NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
+    test_case_id INTEGER NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
     result test_case_result_enum NOT NULL DEFAULT 'pending',
-    PRIMARY KEY (submission_id, sample_id)
+    time_consumption INTEGER,
+    mem_consumption INTEGER,
+    PRIMARY KEY (submission_id, test_case_id)
 );
 
 CREATE TABLE contest_problems (

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+pub use theoj_common::judge::TestCaseData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,13 +10,6 @@ pub struct ProblemContent {
     pub output_description: String,
     pub samples: Vec<TestCaseData>,
     pub note: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TestCaseData {
-    pub input: String,
-    pub output: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

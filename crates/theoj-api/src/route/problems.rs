@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
+use theoj_common::judge::{JudgeTask, SubmissionResult, TestCase, TestCaseJudgeResult};
 use utoipa::ToSchema;
 
 use crate::{
@@ -1021,32 +1022,71 @@ async fn submit(
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
+    let code_for_judge = p.code.clone();
     let submission_code = SubmissionCode { code: p.code };
 
     state
         .write_submission_code(submission_id, &submission_code)
         .await?;
 
-    // TODO: trigger judge
+    let problem_limits = sqlx::query!(
+        r#"
+        SELECT time_limit, mem_limit FROM problems WHERE id = $1
+        "#,
+        problem_id_int
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+
+    let test_case_records = sqlx::query!(
+        r#"
+        SELECT id FROM test_cases WHERE problem_id = $1 ORDER BY id
+        "#,
+        problem_id_int
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+    let mut test_cases = Vec::new();
+    for record in test_case_records {
+        let test_case_data = state.read_test_cases(record.id).await?;
+        test_cases.push(TestCase {
+            id: record.id,
+            data: test_case_data,
+        });
+    }
+    let task = JudgeTask {
+        submission_id,
+        problem_id: problem_id_int,
+        lang: p.lang.clone(),
+        code: code_for_judge,
+        time_limit: problem_limits.time_limit,
+        memory_limit: problem_limits.mem_limit,
+        test_cases,
+    };
+    let state_clone = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = state_clone.submit_judge_task(task).await {
+            tracing::error!("Failed to submit judge task: {:?}", e);
+
+            if let Err(update_err) = sqlx::query!(
+                r#"
+                UPDATE submissions SET result = 'unknown_error' WHERE id = $1
+                "#,
+                submission_id
+            )
+            .execute(&state_clone.pool)
+            .await
+            {
+                tracing::error!("Failed to update submission status: {:?}", update_err);
+            }
+        }
+    });
 
     Ok(Json(SubmitResponse {
         submission_id: submission_id.to_string(),
     }))
-}
-
-#[derive(Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
-#[sqlx(type_name = "submission_result_enum")]
-#[sqlx(rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum SubmissionResult {
-    Pending,
-    Accepted,
-    WrongAnswer,
-    TimeLimitExceeded,
-    MemoryLimitExceeded,
-    RuntimeError,
-    CompileError,
-    UnknownError,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -1211,27 +1251,11 @@ async fn list_submissions(
     }))
 }
 
-#[derive(Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
-#[sqlx(type_name = "test_case_result_enum")]
-#[sqlx(rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum TestCaseResult {
-    Pending,
-    Compiling,
-    Running,
-    Accepted,
-    WrongAnswer,
-    TimeLimitExceeded,
-    MemoryLimitExceeded,
-    RuntimeError,
-    CompileError,
-    UnknownError,
-}
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TestCaseResultItem {
     test_case_id: String,
-    result: TestCaseResult,
+    result: TestCaseJudgeResult,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -1308,10 +1332,10 @@ async fn get_submission(
 
     let test_case_results = sqlx::query!(
         r#"
-        SELECT sample_id, result as "result: TestCaseResult"
+        SELECT test_case_id, result as "result: TestCaseJudgeResult"
         FROM submission_test_cases
         WHERE submission_id = $1
-        ORDER BY sample_id
+        ORDER BY test_case_id
         "#,
         submission_id_int
     )
@@ -1320,7 +1344,7 @@ async fn get_submission(
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .into_iter()
     .map(|row| TestCaseResultItem {
-        test_case_id: row.sample_id.to_string(),
+        test_case_id: row.test_case_id.to_string(),
         result: row.result,
     })
     .collect();
