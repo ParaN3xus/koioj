@@ -109,16 +109,16 @@ const handlePageChange = (page: number) => {
               <tr v-for="problem in problemsData.problems" :key="problem.problemId">
                 <td>{{ problem.problemId }}</td>
                 <td>
-                  <router-link :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
+                  <RouterLink :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
                     class="link link-primary font-semibold">
                     {{ problem.name }}
-                  </router-link>
+                  </RouterLink>
                 </td>
                 <td class="text-right">
-                  <router-link :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
+                  <RouterLink :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
                     class="btn btn-ghost btn-sm">
                     <Icon icon="fa6-solid:arrow-right" width="16" />
-                  </router-link>
+                  </RouterLink>
                 </td>
               </tr>
             </tbody>
