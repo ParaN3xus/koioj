@@ -44,6 +44,8 @@ const loadProblemData = async () => {
 
     currentUserRole.value = roleResponse.role;
     problemData.value = problemResponse;
+
+    document.title = `${problemResponse.name} - TheOJ`;
   } catch (e) {
     handleApiError(e);
     router.push(routeMap.index.path);
