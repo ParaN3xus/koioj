@@ -67,7 +67,7 @@ const handleSubmit = () => {
 };
 
 const handleSolutions = () => {
-  // router.push(buildPath(routeMap.problem.path, { id: problemId.value }));
+  router.push(buildPath(routeMap.soloutionList.path, { id: problemId.value }));
 };
 </script>
 

@@ -1,4 +1,5 @@
 import type { RouteComponent, RouteRecordRaw } from "vue-router";
+import CreateSolution from "./pages/CreateSolution.vue";
 import EditProblem from "./pages/EditProblem.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
@@ -7,6 +8,8 @@ import Problem from "./pages/Problem.vue";
 import ProblemList from "./pages/ProblemList.vue";
 import Profile from "./pages/Profile.vue";
 import Register from "./pages/Register.vue";
+import Solution from "./pages/Solution.vue";
+import SolutionList from "./pages/SolutionList.vue";
 
 const createRoutes = <
   T extends Record<
@@ -59,7 +62,7 @@ export const routeMap = createRoutes({
   createProblem: {
     path: "/problem/new",
     component: EditProblem,
-    title: "Problem - TheOJ",
+    title: "New Problem - TheOJ",
   },
   problem: {
     path: "/problem/:id",
@@ -71,6 +74,21 @@ export const routeMap = createRoutes({
     component: EditProblem,
     title: "Edit Problem - TheOJ",
   },
+  soloutionList: {
+    path: "/problem/:id/solution",
+    component: SolutionList,
+    title: "Solution - TheOJ",
+  },
+  createSolution: {
+    path: "/problem/:id/solution/new",
+    component: CreateSolution,
+    title: "New Solution - TheOJ",
+  },
+  solution: {
+    path: "/problem/:problemId/solution/:solutionId",
+    component: Solution,
+    title: "Solution - TheOJ",
+  },
   notFound: {
     path: "/:pathMatch(.*)*",
     component: NotFound,
@@ -80,7 +98,10 @@ export const routeMap = createRoutes({
 
 export const routes: RouteRecordRaw[] = Object.values(routeMap);
 
-export function buildPath(base: string, params: Record<string, string | number>): string {
+export function buildPath(
+  base: string,
+  params: Record<string, string | number>,
+): string {
   let path = base;
 
   for (const [key, value] of Object.entries(params)) {
