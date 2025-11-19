@@ -1,6 +1,5 @@
 mod auth;
 pub mod config;
-pub mod error;
 mod models;
 mod perm;
 pub mod route;
@@ -23,6 +22,7 @@ use std::{
     sync::Arc,
     time::Instant,
 };
+use theoj_common::error;
 use tokio::{fs, net::TcpListener, sync::RwLock};
 use tower::ServiceBuilder;
 use tower_http::{

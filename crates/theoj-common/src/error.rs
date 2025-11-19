@@ -8,19 +8,19 @@ use utoipa::ToSchema;
 #[macro_export]
 macro_rules! bail {
     ($fmt:expr) => {
-        $crate::bail!(@BAD_REQUEST $fmt)
+        theoj_common::bail!(@BAD_REQUEST $fmt)
     };
     ($fmt:expr, $($t:tt)*) => {
-        $crate::bail!(@BAD_REQUEST $fmt, $($t)*)
+        theoj_common::bail!(@BAD_REQUEST $fmt, $($t)*)
     };
     (@$code:ident $str:expr) => {
-        return $crate::Result::Err($crate::Error(axum::http::StatusCode::$code, Some(anyhow::Error::msg($str))))
+        return Result::Err(Error(axum::http::StatusCode::$code, Some(anyhow::Error::msg($str))))
     };
     (@$code:ident $fmt:expr, $($args:tt)*) => {
-        return $crate::Result::Err($crate::Error(axum::http::StatusCode::$code, Some(anyhow::anyhow!($fmt, $($args)*))))
+        return Result::Err(Error(axum::http::StatusCode::$code, Some(anyhow::anyhow!($fmt, $($args)*))))
     };
     (@$code:ident) => {
-        return $crate::Result::Err($crate::Error(axum::http::StatusCode::$code, None))
+        return Result::Err(Error(axum::http::StatusCode::$code, None))
     };
 }
 

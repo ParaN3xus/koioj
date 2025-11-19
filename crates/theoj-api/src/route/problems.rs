@@ -8,13 +8,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
+use theoj_common::bail;
 use theoj_common::judge::{JudgeTask, SubmissionResult, TestCase, TestCaseJudgeResult};
 use utoipa::ToSchema;
 
 use crate::{
     AppState, Result, State,
     auth::{Claims, jwt_auth_accept_guest_middleware, jwt_auth_middleware},
-    bail,
     error::Error,
     models::*,
     perm::{Action, Resource, UserRole, check_permission, role_of_claims},

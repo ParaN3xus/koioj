@@ -140,7 +140,6 @@ async fn handle_message(
                 let mut exec = executor.write().await;
                 exec.execute_task(
                     submission_id,
-                    problem_id,
                     lang,
                     code,
                     time_limit,

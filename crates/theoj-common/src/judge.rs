@@ -58,6 +58,8 @@ pub enum JudgeToApiMessage {
     Ping(JudgeLoad),
     #[serde(rename = "register")]
     Register(JudgeInfo),
+    #[serde(rename = "error")]
+    Error(i32, String),
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -76,7 +78,7 @@ pub struct JudgeProgress {
     pub total_tests: u32,
 }
 
-#[derive(Clone, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
+#[derive(PartialEq, Clone, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
 #[sqlx(type_name = "submission_result_enum")]
 #[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -91,7 +93,7 @@ pub enum SubmissionResult {
     UnknownError,
 }
 
-#[derive(Clone, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
+#[derive(PartialEq, Clone, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
 #[sqlx(type_name = "test_case_result_enum")]
 #[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]

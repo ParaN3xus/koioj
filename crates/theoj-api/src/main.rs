@@ -1,6 +1,6 @@
 use std::fs::File;
-use theoj_api::{config::Config, error::Result, start_api};
-use theoj_common::utils::init_log;
+use theoj_api::{config::Config, start_api};
+use theoj_common::{error::Result, utils::init_log};
 
 fn main() -> Result<()> {
     dotenvy::dotenv()?;

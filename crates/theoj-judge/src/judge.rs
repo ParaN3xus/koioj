@@ -1,9 +1,12 @@
 use crate::config::Config;
+use crate::judger::{FileInput, JudgerResult, run_judger};
+use futures::future::join_all;
 use std::sync::Arc;
+use std::vec;
 use sysinfo::System;
 use theoj_common::judge::{
-    JudgeLoad, JudgeProgress, JudgeResult, JudgeToApiMessage, SubmissionResult, TestCase,
-    TestCaseJudgeResult, TestCaseResult,
+    JudgeLoad, JudgeResult, JudgeToApiMessage, SubmissionResult, TestCase, TestCaseJudgeResult,
+    TestCaseResult,
 };
 use tokio::sync::{RwLock, Semaphore};
 
@@ -32,6 +35,7 @@ impl JudgeExecutor {
         executor.spawn_load_updater();
         executor
     }
+
     fn spawn_load_updater(&self) {
         let system_info = self.system_info.clone();
         let cached_load = self.cached_load.clone();
@@ -68,7 +72,6 @@ impl JudgeExecutor {
     pub async fn execute_task(
         &mut self,
         submission_id: i32,
-        problem_id: i32,
         lang: String,
         code: String,
         time_limit: i32,
@@ -89,14 +92,12 @@ impl JudgeExecutor {
         tokio::spawn(async move {
             let result = judge_submission(
                 submission_id,
-                problem_id,
                 lang,
                 code,
                 time_limit,
                 memory_limit,
                 test_cases,
                 &config,
-                &tx,
             )
             .await;
 
@@ -114,84 +115,186 @@ impl JudgeExecutor {
 
 async fn judge_submission(
     submission_id: i32,
-    problem_id: i32,
     lang: String,
     code: String,
     time_limit: i32,
     memory_limit: i32,
     test_cases: Vec<TestCase>,
     config: &Config,
-    tx: &tokio::sync::mpsc::UnboundedSender<JudgeToApiMessage>,
 ) -> JudgeToApiMessage {
-    tracing::info!(
-        "Judging submission {} (problem {}, lang: {})",
-        submission_id,
-        problem_id,
-        lang
-    );
+    let lang_config = config.languages.get(&lang);
 
-    let total_tests = test_cases.len();
-    let mut test_results = Vec::new();
-    let mut max_time = 0;
-    let mut max_memory = 0;
-    let mut final_result = SubmissionResult::Accepted;
+    let judger_bin_path = config.judger_bin_path.to_string_lossy().to_string();
+    let rootfs_path = config.rootfs_path.to_string_lossy().to_string();
+    let cgroup_base = config.cgroup_base.to_string_lossy().to_string();
+    let tmpfs_size = "256M";
+    let pids_limit = 16;
 
-    tracing::debug!("Compiling submission {}", submission_id);
+    if lang_config.is_none() {
+        return JudgeToApiMessage::Error(submission_id, format!("Unsupported language {}", lang));
+    }
+    let lang_config = lang_config.unwrap();
+
+    let compile_result: Option<JudgerResult>;
 
     // compile
-
-    // run tests
-    for (idx, test_case) in test_cases.iter().enumerate() {
-        tracing::debug!(
-            "Running test case {} for submission {}",
-            test_case.id,
-            submission_id
-        );
-
-        // update prog
-        let _ = tx.send(JudgeToApiMessage::JudgeProgress(JudgeProgress {
-            submission_id,
-            completed_tests: idx.try_into().unwrap(),
-            total_tests: total_tests.try_into().unwrap(),
-        }));
-
-        // run test
-
-        let time_used = 100; // ms
-        let memory_used = 1024; // KB
-
-        max_time = max_time.max(time_used);
-        max_memory = max_memory.max(memory_used);
-
-        let test_result = TestCaseResult {
-            test_case_id: test_case.id,
-            result: TestCaseJudgeResult::Accepted,
-            time_consumption: time_used,
-            memory_consumption: memory_used,
-        };
-
-        test_results.push(test_result);
+    if let Some(compile_cmd) = &lang_config.compile {
+        match run_judger(
+            &judger_bin_path,
+            &rootfs_path,
+            tmpfs_size,
+            &cgroup_base,
+            &format!("theoj_judge_{}_compile", submission_id),
+            time_limit.into(),
+            memory_limit.into(),
+            pids_limit,
+            "",
+            &compile_cmd
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<&str>>(),
+            &[FileInput::text(&lang_config.source, &code, 0o644)],
+            &[&lang_config.compiled],
+        ) {
+            Err(e) => {
+                return JudgeToApiMessage::Error(
+                    submission_id,
+                    format!("Judger error when compiling: {:?}", e),
+                );
+            }
+            Ok(res) if res.verdict == crate::judger::Verdict::Ok => {
+                compile_result = Some(res);
+            }
+            Ok(_) => {
+                return JudgeToApiMessage::JudgeResult(JudgeResult {
+                    submission_id,
+                    result: SubmissionResult::CompileError,
+                    time_consumption: 0,
+                    memory_consumption: 0,
+                    test_results: vec![],
+                });
+            }
+        }
+    } else {
+        compile_result = None;
     }
 
-    // update prog
-    let _ = tx.send(JudgeToApiMessage::JudgeProgress(JudgeProgress {
-        submission_id,
-        completed_tests: total_tests.try_into().unwrap(),
-        total_tests: total_tests.try_into().unwrap(),
-    }));
+    // test
+    let test_futures = test_cases.iter().map(|test_case| {
+        let run_cmd = lang_config.run.clone();
+        let compiled = lang_config.compiled.clone();
+        let input = test_case.data.input.clone();
+        let expected_output = test_case.data.output.clone();
+        let test_id = test_case.id;
+        let compile_result_ref = compile_result.as_ref();
+        let rootfs_path = rootfs_path.clone();
+        let judger_bin_path = judger_bin_path.clone();
+        let cgroup_base = cgroup_base.clone();
 
-    tracing::debug!(
-        "Submission {} judged: {:?}, time: {}ms, memory: {}KB",
-        submission_id,
-        final_result,
-        max_time,
-        max_memory
-    );
+        async move {
+            let input_files: Vec<FileInput> = match compile_result_ref {
+                Some(res) => match res.output_files.iter().find(|(name, _)| name == &compiled) {
+                    Some((_, content)) => vec![FileInput {
+                        filename: compiled,
+                        content: content.to_vec(),
+                        mode: 0o775,
+                    }],
+                    None => {
+                        return TestCaseResult {
+                            test_case_id: test_id,
+                            result: TestCaseJudgeResult::UnknownError,
+                            time_consumption: 0,
+                            memory_consumption: 0,
+                        };
+                    }
+                },
+                None => vec![],
+            };
+
+            let run_result = run_judger(
+                &judger_bin_path,
+                &rootfs_path,
+                tmpfs_size,
+                &cgroup_base,
+                &format!("theoj_judge_{}_test_{}", submission_id, test_id),
+                time_limit.into(),
+                memory_limit.into(),
+                pids_limit,
+                &input, // stdin
+                &run_cmd.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
+                &input_files,
+                &[],
+            );
+
+            match run_result {
+                Err(_) => TestCaseResult {
+                    test_case_id: test_id,
+                    result: TestCaseJudgeResult::UnknownError,
+                    time_consumption: 0,
+                    memory_consumption: 0,
+                },
+                Ok(res) => {
+                    let result = match res.verdict {
+                        crate::judger::Verdict::Ok => {
+                            if res.stdout.trim() == expected_output.trim() {
+                                TestCaseJudgeResult::Accepted
+                            } else {
+                                TestCaseJudgeResult::WrongAnswer
+                            }
+                        }
+                        crate::judger::Verdict::Tle => TestCaseJudgeResult::TimeLimitExceeded,
+                        crate::judger::Verdict::Mle => TestCaseJudgeResult::MemoryLimitExceeded,
+                        crate::judger::Verdict::Re => TestCaseJudgeResult::RuntimeError,
+                        _ => TestCaseJudgeResult::UnknownError,
+                    };
+                    TestCaseResult {
+                        test_case_id: test_id,
+                        result,
+                        time_consumption: res.time,
+                        memory_consumption: res.memory as i32,
+                    }
+                }
+            }
+        }
+    });
+
+    let test_results: Vec<TestCaseResult> = join_all(test_futures).await;
+
+    let final_result = if test_results
+        .iter()
+        .all(|r| r.result == TestCaseJudgeResult::Accepted)
+    {
+        SubmissionResult::Accepted
+    } else if test_results
+        .iter()
+        .any(|r| r.result == TestCaseJudgeResult::WrongAnswer)
+    {
+        SubmissionResult::WrongAnswer
+    } else if test_results
+        .iter()
+        .any(|r| r.result == TestCaseJudgeResult::TimeLimitExceeded)
+    {
+        SubmissionResult::TimeLimitExceeded
+    } else if test_results
+        .iter()
+        .any(|r| r.result == TestCaseJudgeResult::MemoryLimitExceeded)
+    {
+        SubmissionResult::MemoryLimitExceeded
+    } else {
+        SubmissionResult::RuntimeError
+    };
+
+    let total_time = test_results.iter().map(|r| r.time_consumption).sum();
+    let max_memory = test_results
+        .iter()
+        .map(|r| r.memory_consumption)
+        .max()
+        .unwrap_or(0);
 
     JudgeToApiMessage::JudgeResult(JudgeResult {
         submission_id,
         result: final_result,
-        time_consumption: max_time,
+        time_consumption: total_time,
         memory_consumption: max_memory,
         test_results,
     })

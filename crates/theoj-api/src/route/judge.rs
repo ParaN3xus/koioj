@@ -6,13 +6,14 @@ use axum::{
 use futures::{sink::SinkExt, stream::StreamExt};
 use rand::Rng;
 use std::{sync::Arc, time::Instant};
+use theoj_common::bail;
 use theoj_common::judge::{
     ApiToJudgeMessage, JudgeInfo, JudgeLoad, JudgeTask, JudgeToApiMessage, SubmissionResult,
     TestCaseJudgeResult,
 };
 use tokio::sync::{RwLock, mpsc};
 
-use crate::{AppState, Result, State, bail, error::Error};
+use crate::{AppState, Result, State, error::Error};
 
 pub fn routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
@@ -206,7 +207,6 @@ async fn handle_judge_message(
             *judge_id = Some(info.judge_id);
             *registered = true;
         }
-
         JudgeToApiMessage::Ping(load) => {
             if !*registered {
                 tracing::warn!("Received ping from unregistered judge");
@@ -224,7 +224,6 @@ async fn handle_judge_message(
 
             tx.send(ApiToJudgeMessage::Pong)?;
         }
-
         JudgeToApiMessage::JudgeProgress(progress) => {
             tracing::debug!(
                 "Submission {} progress: {}/{}",
@@ -234,7 +233,6 @@ async fn handle_judge_message(
             );
             // TODO: somehow broadcast to frontend?
         }
-
         JudgeToApiMessage::JudgeResult(result) => {
             tracing::info!(
                 "Submission {} result: {:?}, time: {}ms, memory: {}KB",
@@ -274,6 +272,23 @@ async fn handle_judge_message(
                 .execute(&state.pool)
                 .await?;
             }
+        }
+        JudgeToApiMessage::Error(id, msg) => {
+            tracing::error!("Submission {} judge error: {}", id, msg);
+
+            sqlx::query!(
+                r#"
+                UPDATE submissions 
+                SET result = $1, time_consumption = $2, mem_consumption = $3
+                WHERE id = $4
+                "#,
+                SubmissionResult::UnknownError as SubmissionResult,
+                0,
+                0,
+                id
+            )
+            .execute(&state.pool)
+            .await?;
         }
     }
 

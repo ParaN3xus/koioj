@@ -3,12 +3,12 @@ use std::sync::Arc;
 use axum::{Extension, Json, Router, extract::Path, http::StatusCode, middleware};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use theoj_common::bail;
 use utoipa::ToSchema;
 
 use crate::{
     AppState, Result, State,
     auth::{Claims, generate_jwt_token, hash_password, jwt_auth_middleware, verify_password},
-    bail,
     error::Error,
     perm::{Action, Resource, UserRole, check_permission},
 };

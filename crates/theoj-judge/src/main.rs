@@ -2,6 +2,7 @@
 
 mod config;
 mod judge;
+mod judger;
 mod websocket;
 
 use anyhow::Result;
