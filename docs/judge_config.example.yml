@@ -1,6 +1,6 @@
 judgeId: "judge-001"
 apiUrl: "http://localhost:8080"
-logFile: "theoj_judger.log"
+logFile: "theoj_judge.log"
 logLevel: "Debug"
 judgerBinPath: "./judger"
 rootfsPath: "./local/rootfs"
