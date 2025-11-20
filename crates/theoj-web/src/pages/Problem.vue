@@ -63,7 +63,7 @@ const handleEdit = () => {
 };
 
 const handleSubmit = () => {
-  // router.push(buildPath(routeMap.problem.path, { id: problemId.value }));
+  router.push(buildPath(routeMap.submit.path, { id: problemId.value }));
 };
 
 const handleSolutions = () => {

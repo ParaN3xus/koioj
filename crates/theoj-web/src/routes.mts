@@ -10,6 +10,8 @@ import Profile from "./pages/Profile.vue";
 import Register from "./pages/Register.vue";
 import Solution from "./pages/Solution.vue";
 import SolutionList from "./pages/SolutionList.vue";
+import Submission from "./pages/Submission.vue";
+import Submit from "./pages/Submit.vue";
 
 const createRoutes = <
   T extends Record<
@@ -88,6 +90,16 @@ export const routeMap = createRoutes({
     path: "/problem/:problemId/solution/:solutionId",
     component: Solution,
     title: "Solution - TheOJ",
+  },
+  submit: {
+    path: "/problem/:id/submit",
+    component: Submit,
+    title: "Submit - TheOJ",
+  },
+  submission: {
+    path: "/problem/:problemId/submission/:submissionId",
+    component: Submission,
+    title: "Submission - TheOJ",
   },
   notFound: {
     path: "/:pathMatch(.*)*",
