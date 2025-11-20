@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "generate-openapi": "cargo run --bin --no-default-features --bin gen_openapi ./openapi.json && npx openapi-typescript-codegen -i ./openapi.json -o crates/theoj-web/src/theoj-api",
-    "watch-theoj-api": "watchexec -r -i \"crates/theoj-web/**\" \"cargo run --no-default-features --bin theoj-api\"",
+    "watch-theoj-api": "watchexec -r -i \"crates/theoj-web/**\" -i \"crates/theoj-judge/**\" \"cargo run --no-default-features --bin theoj-api\"",
+    "watch-theoj-judge": "watchexec -r -i \"crates/theoj-web/**\" -i \"crates/theoj-api/**\" \"cargo run --bin theoj-judge -- -c judge_config.yml serve\"",
     "dev": "vite crates/theoj-web",
     "build": "vue-tsc -b && vite build crates/theoj-web",
     "preview": "vite preview crates/theoj-web"
