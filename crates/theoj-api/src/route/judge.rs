@@ -45,14 +45,13 @@ impl crate::AppState {
 
         // filter timeout judgers
         let now = Instant::now();
-        let available_judges: Vec<_> = judges
-            .iter()
-            .filter(|(_, conn)| {
-                let last_heartbeat = conn.last_heartbeat.blocking_read();
-                now.duration_since(*last_heartbeat).as_secs() < 60
-            })
-            .collect();
-
+        let mut available_judges = Vec::new();
+        for (id, conn) in judges.iter() {
+            let last_heartbeat = *conn.last_heartbeat.read().await;
+            if now.duration_since(last_heartbeat).as_secs() < 60 {
+                available_judges.push((id, conn));
+            }
+        }
         if available_judges.is_empty() {
             bail!("no available judge (all timeout)");
         }
