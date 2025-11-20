@@ -27,6 +27,7 @@ impl From<i32> for Verdict {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // stderr unused
 pub struct JudgerResult {
     pub verdict: Verdict,
     pub time: i32,

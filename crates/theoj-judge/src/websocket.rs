@@ -1,7 +1,7 @@
 use crate::{config::Config, judge::JudgeExecutor};
-use anyhow::{Context, Result};
 use futures::{SinkExt, StreamExt};
 use std::sync::Arc;
+use theoj_common::error::{Context, Result};
 use theoj_common::judge::{ApiToJudgeMessage, JudgeInfo, JudgeTask, JudgeToApiMessage};
 use tokio::sync::RwLock;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -124,7 +124,6 @@ async fn handle_message(
         }
         ApiToJudgeMessage::JudgeTask(JudgeTask {
             submission_id,
-            problem_id,
             lang,
             code,
             time_limit,

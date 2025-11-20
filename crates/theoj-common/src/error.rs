@@ -87,3 +87,49 @@ pub struct ErrorResponse {
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+pub trait Context<T, E> {
+    fn status_code(self, code: StatusCode) -> Result<T>;
+
+    fn context<C>(self, context: C) -> Result<T>
+    where
+        C: Display + Debug + Send + Sync + 'static;
+
+    fn with_context<C, F>(self, f: F) -> Result<T>
+    where
+        C: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> C;
+}
+
+impl<T, E> Context<T, E> for Result<T, E>
+where
+    E: Into<Error>,
+{
+    fn status_code(self, code: StatusCode) -> Result<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.into().status_code(code)),
+        }
+    }
+
+    fn context<C>(self, context: C) -> Result<T>
+    where
+        C: Display + Debug + Send + Sync + 'static,
+    {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.into().context(context)),
+        }
+    }
+
+    fn with_context<C, F>(self, context: F) -> Result<T, Error>
+    where
+        C: Display + Debug + Send + Sync + 'static,
+        F: FnOnce() -> C,
+    {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.into().context(context())),
+        }
+    }
+}

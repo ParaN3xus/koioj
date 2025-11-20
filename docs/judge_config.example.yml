@@ -1,0 +1,71 @@
+judgeId: "judge-001"
+apiUrl: "http://localhost:8080"
+logFile: "theoj_judger.log"
+logLevel: "Debug"
+judgerBinPath: "./judger"
+rootfsPath: "./local/rootfs"
+cgroupBase: "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/"
+rootfsBase: "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-minirootfs-3.22.2-x86_64.tar.gz"
+rootfsInstall:
+  - "apk add diffutils"
+
+languages:
+  c:
+    install:
+      - "apk add gcc"
+    source: "solution.c"
+    compile:
+      - "/usr/bin/gcc"
+      - "-Wall"
+      - "-std=c17"
+      - "-O3"
+      - "solution.c"
+      - "-o"
+      - "solution"
+      - "-lm"
+    compiled: "solution"
+    run:
+      - "./solution"
+
+  cpp:
+    install:
+      - "apk add g++"
+    source: "solution.cpp"
+    compile:
+      - "/usr/bin/g++"
+      - "-Wall"
+      - "-std=c++17"
+      - "-O3"
+      - "solution.cpp"
+      - "-o"
+      - "solution"
+      - "-lm"
+    compiled: "solution"
+    run:
+      - "./solution"
+
+  python:
+    install:
+      - "apk add python3"
+    source: "solution.py"
+    compile:
+      - "/usr/bin/python3"
+      - "-m"
+      - "py_compile"
+      - "solution.py"
+    compiled: "__pycache__/solution.cpython-312.pyc"
+    run:
+      - "/usr/bin/python3"
+      - "solution.py"
+
+  java:
+    install:
+      - "apk add openjdk17-jdk"
+    source: "Main.java"
+    compile:
+      - "/usr/bin/javac"
+      - "Main.java"
+    compiled: "Main.class"
+    run:
+      - "/usr/bin/java"
+      - "Main"

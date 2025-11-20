@@ -26,7 +26,6 @@ pub enum ApiToJudgeMessage {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct JudgeTask {
     pub submission_id: i32,
-    pub problem_id: i32,
     pub lang: String,
     pub code: String,
     pub time_limit: i32,   // ms

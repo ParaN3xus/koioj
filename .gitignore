@@ -32,3 +32,4 @@ openapi.json
 /local
 /.env
 /config.yml
+/judge_config.yml

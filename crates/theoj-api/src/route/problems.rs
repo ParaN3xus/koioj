@@ -1058,7 +1058,6 @@ async fn submit(
     }
     let task = JudgeTask {
         submission_id,
-        problem_id: problem_id_int,
         lang: p.lang.clone(),
         code: code_for_judge,
         time_limit: problem_limits.time_limit,

@@ -6,16 +6,10 @@ use serde::Deserialize;
 use theoj_common::utils::deserialize_log_level;
 use tracing::Level;
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct LanguageConfig {
-    pub install: Option<Vec<String>>,
-    pub source: String,
-    pub compile: Option<Vec<String>>,
-    pub compiled: String,
-    pub run: Vec<String>,
-}
+use crate::sandbox::LanguageConfig;
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub judge_id: String,
     pub api_url: String,
@@ -26,4 +20,6 @@ pub struct Config {
     pub rootfs_path: PathBuf,
     pub cgroup_base: PathBuf,
     pub languages: HashMap<String, LanguageConfig>,
+    pub rootfs_base: String,
+    pub rootfs_install: Vec<String>,
 }
