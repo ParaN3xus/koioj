@@ -15,4 +15,4 @@
 
 - Create `judge_config.yml` with given template.
 - Install sandbox with `sudo ./theoj-judge -c judger_config.yml install-sandbox`
-- Run `theoj-judge` by `./theoj-judge -c judger_config.yml serve`
+- Run `theoj-judge` by `systemd-run --user --scope -p Delegate=yes -- ./theoj-judge -c judger_config.yml serve`
