@@ -149,7 +149,6 @@ async fn create_problem(
     })?;
 
     let content = ProblemContent {
-        name: p.name,
         description: p.description,
         input_description: p.input_description,
         output_description: p.output_description,
@@ -301,7 +300,7 @@ async fn get_problem(
 
     Ok(Json(GetProblemResponse {
         problem_id: problem.id.to_string(),
-        name: content.name,
+        name: problem.name,
         description: content.description,
         input_description: content.input_description,
         output_description: content.output_description,
@@ -365,10 +364,8 @@ async fn put_problem(
         .await
         .map_err(|e| Error::msg(format!("failed to start transaction: {}", e)))?;
 
-    // 更新 name
     if let Some(name) = &p.name {
         if !name.is_empty() {
-            content.name = name.clone();
             sqlx::query!(
                 r#"
                 UPDATE problems SET name = $1 WHERE id = $2
@@ -715,10 +712,7 @@ async fn create_solution(
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
-    let solution_content = SolutionContent {
-        title: p.title,
-        content: p.content,
-    };
+    let solution_content = SolutionContent { content: p.content };
 
     state
         .write_solution_content(solution_id, &solution_content)
@@ -854,7 +848,7 @@ async fn get_solution(
 
     Ok(Json(GetSolutionResponse {
         solution_id: solution.id.to_string(),
-        title: solution_content.title,
+        title: solution.title,
         content: solution_content.content,
         author_id: solution.author.to_string(),
         author_name: solution.username,

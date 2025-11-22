@@ -34,7 +34,7 @@ use uuid::Uuid;
 
 use crate::{
     auth::{generate_strong_password, hash_password},
-    models::{ProblemContent, SolutionContent, SubmissionCode, TestCaseData},
+    models::{ContestContent, ProblemContent, SolutionContent, SubmissionCode, TestCaseData},
     route::judge::JudgeConnection,
 };
 
@@ -159,6 +159,10 @@ impl AppState {
         self.get_data_path("submissions", submission_id)
     }
 
+    fn get_contest_path(&self, contest_id: i32) -> PathBuf {
+        self.get_data_path("contests", contest_id)
+    }
+
     pub async fn write_problem_content(
         &self,
         problem_id: i32,
@@ -212,6 +216,20 @@ impl AppState {
 
     pub async fn read_submission_code(&self, submission_id: i32) -> Result<SubmissionCode> {
         let path = self.get_submission_code_path(submission_id);
+        self.read_json_data(path).await
+    }
+
+    pub async fn write_contest_content(
+        &self,
+        contest_id: i32,
+        content: &ContestContent,
+    ) -> Result<()> {
+        let path = self.get_contest_path(contest_id);
+        self.write_json_data(path, content).await
+    }
+
+    pub async fn read_contest_content(&self, contest_id: i32) -> Result<ContestContent> {
+        let path = self.get_contest_path(contest_id);
         self.read_json_data(path).await
     }
 }

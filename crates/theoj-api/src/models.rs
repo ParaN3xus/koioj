@@ -4,7 +4,6 @@ pub use theoj_common::judge::TestCaseData;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProblemContent {
-    pub name: String,
     pub description: String,
     pub input_description: String,
     pub output_description: String,
@@ -21,7 +20,6 @@ pub struct TestCasesData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SolutionContent {
-    pub title: String,
     pub content: String,
 }
 
@@ -29,4 +27,10 @@ pub struct SolutionContent {
 #[serde(rename_all = "camelCase")]
 pub struct SubmissionCode {
     pub code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestContent {
+    pub description: String,
 }
