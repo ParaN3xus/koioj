@@ -565,7 +565,7 @@ async fn add_test_cases(
 
     sqlx::query!(
         r#"
-        SELECT id FROM problems WHERE id = $1 AND status = 'active'
+        SELECT id FROM problems WHERE id = $1
         "#,
         problem_id_int
     )
