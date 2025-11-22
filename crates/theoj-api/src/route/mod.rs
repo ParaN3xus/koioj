@@ -1,3 +1,4 @@
+mod contests;
 pub mod judge;
 mod misc;
 mod problems;
@@ -22,9 +23,11 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
             .merge(misc::top_routes())
             .merge(users::top_routes())
             .merge(problems::top_routes())
+            .merge(contests::top_routes())
             .nest("/users", users::routes(state.clone()))
             .nest("/problems", problems::routes(state.clone()))
-            .nest("/judge", judge::routes(state.clone())),
+            .nest("/judge", judge::routes(state.clone()))
+            .nest("/contests", contests::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {

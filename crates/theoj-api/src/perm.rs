@@ -32,6 +32,10 @@ pub enum Action {
     CreateSolution,
     DeleteSolution,
     GetSubmission,
+    CreateContest,
+    PutContest,
+    DeleteContest,
+    ViewOverallRanking,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,14 +45,15 @@ pub enum Resource {
     Problem(i32),
     Solution(i32),
     Submission(i32),
+    Contest(i32),
 }
 
 impl Resource {
     pub async fn owner_id(self, pool: &sqlx::PgPool) -> Result<i32> {
         match self {
-            Resource::Global => Ok(1), // admin
+            Resource::Global => Ok(1),
             Resource::User(id) => Ok(id),
-            Resource::Problem(_) => Ok(-1), // undefined
+            Resource::Problem(_) => Ok(-1),
             Resource::Solution(id) => {
                 let result = sqlx::query_scalar!("SELECT author FROM solutions WHERE id = $1", id)
                     .fetch_one(pool)
@@ -59,6 +64,14 @@ impl Resource {
             Resource::Submission(id) => {
                 let result =
                     sqlx::query_scalar!("SELECT user_id FROM submissions WHERE id = $1", id)
+                        .fetch_one(pool)
+                        .await?;
+
+                Ok(result)
+            }
+            Resource::Contest(id) => {
+                let result =
+                    sqlx::query_scalar!("SELECT creator_id FROM contests WHERE id = $1", id)
                         .fetch_one(pool)
                         .await?;
 
@@ -107,15 +120,28 @@ pub async fn check_permission(
         (_, Action::GetProfile, _) => true,
         (_, Action::PutProfile, Resource::User(id_to_put)) => claims.sub == id_to_put,
         (_, Action::DeleteUser, Resource::User(id_to_del)) => claims.sub == id_to_del,
+
         (UserRole::Teacher, Action::CreateProblem, _) => true,
         (UserRole::Teacher, Action::PutProblem, _) => true,
         (UserRole::Teacher, Action::DeleteProblem, _) => true,
+
         (UserRole::Teacher, Action::AddTestCases, _) => true,
         (UserRole::Teacher, Action::GetTestCases, _) => true,
+
         (UserRole::Teacher, Action::CreateSolution, _) => true,
         (UserRole::Teacher, Action::DeleteSolution, solution) => {
             claims.sub == solution.owner_id(pool).await?
         }
+
+        (UserRole::Teacher, Action::CreateContest, _) => true,
+        (UserRole::Teacher, Action::PutContest, contest) => {
+            claims.sub == contest.owner_id(pool).await?
+        }
+        (UserRole::Teacher, Action::DeleteContest, contest) => {
+            claims.sub == contest.owner_id(pool).await?
+        }
+        (UserRole::Teacher, Action::ViewOverallRanking, _) => true,
+
         (UserRole::Teacher, Action::GetSubmission, _) => true,
         (UserRole::Student, Action::GetSubmission, submission) => {
             claims.sub == submission.owner_id(pool).await?
