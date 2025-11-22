@@ -68,7 +68,6 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         problems::list_submissions,
         problems::get_submission,
         problems::get_ac_status,
-        judge::judge_ws
     ),
     modifiers(&JWTAuthAddon),
     tags(
