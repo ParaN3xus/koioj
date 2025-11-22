@@ -129,10 +129,11 @@ async fn create_contest(
 
     let contest_id: i32 = sqlx::query_scalar!(
         r#"
-        INSERT INTO contests (name, begin_time, end_time, password, type, status)
-        VALUES ($1, $2, $3, $4, $5, 'active')
+        INSERT INTO contests (creator_id, name, begin_time, end_time, password, type, status)
+        VALUES ($1, $2, $3, $4, $5, $6, 'active')
         RETURNING id
         "#,
+        claims.sub,
         p.name,
         p.begin_time,
         p.end_time,
@@ -160,14 +161,15 @@ async fn create_contest(
         .await
         .map_err(|e| Error::msg(format!("failed to write contest content: {:?}", e)))?;
 
-    for problem_id in p.problem_ids {
+    for (index, problem_id) in p.problem_ids.iter().enumerate() {
         sqlx::query!(
             r#"
-            INSERT INTO contest_problems (contest_id, problem_id)
-            VALUES ($1, $2)
+            INSERT INTO contest_problems (contest_id, problem_id, number)
+            VALUES ($1, $2, $3)
             "#,
             contest_id,
-            problem_id
+            problem_id,
+            index as i32
         )
         .execute(&state.pool)
         .await
