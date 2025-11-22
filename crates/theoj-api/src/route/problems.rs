@@ -28,11 +28,11 @@ pub fn top_routes() -> Router<Arc<AppState>> {
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
     Router::new()
-        .route("/{problem_id}", get(get_problem))
         .route("/{problem_id}/solutions", get(list_solutions))
         .route("/{problem_id}/solutions/{solution_id}", get(get_solution))
         .merge(
             Router::new()
+                .route("/{problem_id}", get(get_problem))
                 .route("/", get(list_problems))
                 .layer(middleware::from_fn_with_state(
                     state.clone(),
@@ -262,6 +262,7 @@ pub(crate) struct GetProblemResponse {
     note: Option<String>,
     time_limit: i32,
     mem_limit: i32,
+    status: ProblemStatus,
 }
 
 #[utoipa::path(
@@ -277,37 +278,47 @@ pub(crate) struct GetProblemResponse {
 )]
 async fn get_problem(
     state: State,
+    claims: Extension<Claims>,
     Path(problem_id): Path<String>,
 ) -> Result<Json<GetProblemResponse>> {
     let problem_id_int: i32 = problem_id
         .parse()
         .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
-    let problem = sqlx::query!(
-        r#"
-        SELECT id, name, time_limit, mem_limit
-        FROM problems
-        WHERE id = $1 AND status = 'active'
-        "#,
-        problem_id_int
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
-
+    let user_role = role_of_claims(&state.pool, &claims).await?;
+    let query = match user_role {
+        UserRole::Teacher | UserRole::Admin => {
+            r#"
+            SELECT id, name, time_limit, mem_limit, status
+            FROM problems
+            WHERE id = $1
+            "#
+        }
+        _ => {
+            r#"
+            SELECT id, name, time_limit, mem_limit, status
+            FROM problems
+            WHERE id = $1 AND status = 'active'
+            "#
+        }
+    };
+    let problem = sqlx::query(query)
+        .bind(problem_id_int)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
     let content = state.read_problem_content(problem_id_int).await?;
-
     Ok(Json(GetProblemResponse {
-        problem_id: problem.id.to_string(),
-        name: problem.name,
+        problem_id: problem.get::<i32, _>("id").to_string(),
+        name: problem.get::<String, _>("name"),
         description: content.description,
         input_description: content.input_description,
         output_description: content.output_description,
         samples: content.samples,
         note: content.note,
-        time_limit: problem.time_limit,
-        mem_limit: problem.mem_limit,
+        time_limit: problem.get::<i32, _>("time_limit"),
+        mem_limit: problem.get::<i32, _>("mem_limit"),
+        status: problem.get::<ProblemStatus, _>("status"),
     }))
 }
 

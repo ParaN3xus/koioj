@@ -95,7 +95,6 @@ const loadProblemData = async () => {
     const problemResponse = await ProblemService.getProblem(id);
     formData.value = {
       ...problemResponse,
-      status: ProblemStatus.HIDDEN,
     };
 
     samples.value = problemResponse.samples || [];
