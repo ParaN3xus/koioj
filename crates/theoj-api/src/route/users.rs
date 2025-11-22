@@ -285,8 +285,6 @@ async fn get_role(
         .parse()
         .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
-    println!("{user_id_int}");
-
     let role = sqlx::query!(
         r#"
         SELECT user_role as "user_role: UserRole" FROM users
