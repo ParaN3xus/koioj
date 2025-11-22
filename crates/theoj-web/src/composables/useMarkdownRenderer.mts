@@ -1,37 +1,54 @@
-import { marked, type Renderer } from "marked";
-import markedKatex from "marked-katex-extension";
+import markdownItKatex from "@traptitech/markdown-it-katex";
+import MarkdownIt from "markdown-it";
 import "katex/dist/katex.min.css";
 
-let renderer: Renderer | null = null;
+let md: MarkdownIt | null = null;
 
 export function useMarkdownRenderer() {
-  if (!renderer) {
-    renderer = new marked.Renderer();
+  if (!md) {
+    md = new MarkdownIt({
+      html: false, // no raw HTML
+      breaks: true, // \n to <br>
+      linkify: true, // URL -> link
+    });
 
-    renderer.heading = ({ text, depth }) => {
-      if (depth < 3) {
-        depth = 3;
+    // katex
+    md.use(markdownItKatex, {
+      throwOnError: false,
+      errorColor: "#cc0000",
+    });
+
+    // minimal heading = h3
+    md.renderer.rules.heading_open = (tokens, idx) => {
+      const token = tokens[idx];
+      if (!token) {
+        return `ERR null token`
       }
-      return `<h${depth}>${text}</h${depth}>`;
+      let level = parseInt(token.tag.substring(1), 10);
+      if (level < 3) {
+        level = 3;
+      }
+      return `<h${level}>`;
     };
 
-    renderer.html = () => "";
-
-    marked.use(
-      markedKatex({
-        throwOnError: false,
-      }),
-    );
-
-    marked.use({
-      breaks: true,
-      gfm: true,
-      renderer: renderer,
-    });
+    md.renderer.rules.heading_close = (tokens, idx) => {
+      const token = tokens[idx];
+      if (!token) {
+        return `ERR null token`
+      }
+      let level = parseInt(token.tag.substring(1), 10);
+      if (level < 3) {
+        level = 3;
+      }
+      return `</h${level}>`;
+    };
   }
 
   const renderMarkdown = (text: string): string => {
-    return marked(text) as string;
+    if (!md) {
+      return `ERR null md render`
+    }
+    return md.render(text);
   };
 
   return {
