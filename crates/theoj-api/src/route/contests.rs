@@ -204,13 +204,14 @@ async fn check_contest_password(
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ListContestsQuery {
     page: Option<i64>,
     page_size: Option<i64>,
+    end_after: Option<DateTime<Utc>>,
 }
-
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ContestListItem {
@@ -233,10 +234,7 @@ pub(crate) struct ListContestsResponse {
 #[utoipa::path(
     get,
     path = "/api/contests",
-    params(
-        ("page" = Option<i64>, Query),
-        ("pageSize" = Option<i64>, Query),
-    ),
+    params(ListContestsQuery),  
     responses(
         (status = 200, body = ListContestsResponse),
     ),
@@ -248,39 +246,42 @@ async fn list_contests(
     Query(q): Query<ListContestsQuery>,
 ) -> Result<Json<ListContestsResponse>> {
     let user_role = role_of_claims(&state.pool, &claims).await?;
-
     let page = q.page.unwrap_or(1).max(1);
     let page_size = q.page_size.unwrap_or(20).clamp(1, 100);
     let offset = (page - 1) * page_size;
 
+    let end_after = q
+        .end_after
+        .unwrap_or_else(|| DateTime::from_timestamp(0, 0).unwrap());
     let (count_query, select_query) = match user_role {
         UserRole::Teacher | UserRole::Admin => (
-            "SELECT COUNT(*) FROM contests",
+            "SELECT COUNT(*) FROM contests WHERE end_time > $1",
             r#"
             SELECT id, name, begin_time, end_time, type, (password IS NOT NULL) as has_password
             FROM contests
+            WHERE end_time > $1
             ORDER BY begin_time DESC
-            LIMIT $1 OFFSET $2
+            LIMIT $2 OFFSET $3
             "#,
         ),
         _ => (
-            "SELECT COUNT(*) FROM contests WHERE status = 'active'",
+            "SELECT COUNT(*) FROM contests WHERE status = 'active' AND end_time > $1",
             r#"
             SELECT id, name, begin_time, end_time, type, (password IS NOT NULL) as has_password
             FROM contests
-            WHERE status = 'active'
+            WHERE status = 'active' AND end_time > $1
             ORDER BY begin_time DESC
-            LIMIT $1 OFFSET $2
+            LIMIT $2 OFFSET $3
             "#,
         ),
     };
-
     let total: i64 = sqlx::query_scalar(count_query)
+        .bind(end_after)
         .fetch_one(&state.pool)
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?;
-
     let contests = sqlx::query(select_query)
+        .bind(end_after)
         .bind(page_size)
         .bind(offset)
         .fetch_all(&state.pool)
@@ -296,7 +297,6 @@ async fn list_contests(
             has_password: row.get::<bool, _>("has_password"),
         })
         .collect();
-
     Ok(Json(ListContestsResponse { contests, total }))
 }
 
