@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
+import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import {
+  ContestService,
+  type GetContestResponse,
   type GetSubmissionResponse,
   ProblemService,
   SubmissionResult,
@@ -13,10 +16,23 @@ import {
 
 const route = useRoute();
 const { handleApiError } = useApiErrorHandler();
+const contestPasswordStore = useContestPasswordStore();
 
-const problemId = ref<string>(route.params.problemId as string);
+const problemId = computed(() => {
+  // Contest mode: /contest/:contestId/problem/:problemId/submission/:submissionId
+  if (route.params.problemId) {
+    return route.params.problemId as string;
+  }
+  // Normal mode: /problem/:problemId/submission/:submissionId
+  return route.params.problemId as string;
+});
+
 const submissionId = ref<string>(route.params.submissionId as string);
+const contestId = computed(() => route.params.contestId as string | undefined);
+const isContestMode = computed(() => !!contestId.value);
+
 const submission = ref<GetSubmissionResponse | null>(null);
+const contestData = ref<GetContestResponse | null>(null);
 const isLoading = ref<boolean>(true);
 const pollingTimer = ref<number | null>(null);
 
@@ -46,17 +62,31 @@ const testCaseResultColors: Record<TestCaseJudgeResult, string> = {
 
 const fetchSubmission = async () => {
   try {
-    const response = await ProblemService.getSubmission(
+    const submissionResponse = await ProblemService.getSubmission(
       problemId.value,
-      submissionId.value,
+      submissionId.value
     );
-    submission.value = response;
+    submission.value = submissionResponse;
+
+    // If in contest mode and haven't fetched contest data yet, fetch it
+    if (isContestMode.value && contestId.value && !contestData.value) {
+      const storedPassword = contestPasswordStore.getPassword(
+        Number(contestId.value),
+      );
+      const contestResponse = await ContestService.getContest(
+        contestId.value,
+        storedPassword || null
+      );
+      contestData.value = contestResponse;
+      document.title = `Submission of ${submissionResponse.problemName} in ${contestResponse.name} - TheOJ`;
+    } else {
+      document.title = `Submission of ${submissionResponse.problemName} - TheOJ`;
+    }
+
     isLoading.value = false;
 
-    document.title = `Submission of ${response.problemName} - TheOJ`;
-
     // pending -> poll again 3s later
-    if (response.result === SubmissionResult.PENDING) {
+    if (submissionResponse.result === SubmissionResult.PENDING) {
       pollingTimer.value = window.setTimeout(fetchSubmission, 3000);
     }
   } catch (error) {
@@ -64,6 +94,7 @@ const fetchSubmission = async () => {
     isLoading.value = false;
   }
 };
+
 
 const formatResult = (result: string): string => {
   return result
@@ -83,6 +114,7 @@ onUnmounted(() => {
 });
 </script>
 
+
 <template>
   <div class="container mx-auto max-w-6xl">
     <div class="card bg-base-100 shadow-xl">
@@ -101,8 +133,16 @@ onUnmounted(() => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p class="text-sm text-gray-500">Problem</p>
-              <RouterLink :to="buildPath(routeMap.problem.path, { id: problemId })" class="font-semibold link">
+              <RouterLink :to="isContestMode
+                ? buildPath(routeMap.contestProblem.path, { contestId: contestId!, problemId: problemId })
+                : buildPath(routeMap.problem.path, { id: problemId })" class="font-semibold link">
                 {{ submission.problemName }}
+              </RouterLink>
+            </div>
+            <div v-if="isContestMode && contestData">
+              <p class="text-sm text-gray-500">Contest</p>
+              <RouterLink :to="buildPath(routeMap.contest.path, { id: contestId! })" class="font-semibold link">
+                {{ contestData.name }}
               </RouterLink>
             </div>
             <div>

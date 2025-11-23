@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
 import { buildPath, routeMap } from "@/routes.mjs";
-import { useUserStore } from "@/user.mts";
+import { useUserStore } from "@/stores/user.mjs";
 import ThemeToggle from "./ThemeToggle.vue";
 
 const navButtons = [
-  { to: "/problem", text: "Problem", icon: "fa7-solid:book" },
-  { to: "/contest", text: "Contest", icon: "fa7-solid:trophy" },
+  { to: routeMap.problemList.path, text: "Problem", icon: "fa7-solid:book" },
+  { to: routeMap.contestList.path, text: "Contest", icon: "fa7-solid:trophy" },
   { to: "/training", text: "Training", icon: "fa7-solid:chart-line" },
 ];
 const siteTitle = "TheOJ";

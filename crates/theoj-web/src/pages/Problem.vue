@@ -6,6 +6,7 @@ import { useToast } from "vue-toastification";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
+import { useUserStore } from "@/stores/user.mjs";
 import {
   type GetProblemResponse,
   ProblemService,
@@ -13,7 +14,6 @@ import {
   UserRole,
   UserService,
 } from "@/theoj-api";
-import { useUserStore } from "@/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const { renderMarkdown } = useMarkdownRenderer();
@@ -22,7 +22,18 @@ const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 
-const problemId = computed(() => route.params.id as string);
+const problemId = computed(() => {
+  // contest mode: /contest/:cid/problem/:pid
+  if (route.params.problemId) {
+    return route.params.problemId as string;
+  }
+  // normal mode: /problem/:id
+  return route.params.id as string;
+});
+
+const contestId = computed(() => route.params.contestId as string | undefined);
+const isContestMode = computed(() => !!contestId.value);
+
 const isLoading = ref(true);
 const currentUserRole = ref<UserRole | null>(null);
 const problemData = ref<GetProblemResponse | null>(null);
@@ -63,6 +74,15 @@ const handleEdit = () => {
 };
 
 const handleSubmit = () => {
+  console.log(isContestMode.value)
+  if (isContestMode.value) {
+    if (!contestId.value) {
+      toast.error("invalid contest!")
+      return
+    }
+    router.push(buildPath(routeMap.contestSubmit.path, { contestId: contestId.value, problemId: problemId.value }));
+    return
+  }
   router.push(buildPath(routeMap.submit.path, { id: problemId.value }));
 };
 

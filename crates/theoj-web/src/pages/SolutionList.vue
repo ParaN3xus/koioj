@@ -4,9 +4,9 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
+import { useUserStore } from "@/stores/user.mjs";
 import type { GetProblemResponse, SolutionListItem } from "@/theoj-api";
 import { ProblemService, UserRole, UserService } from "@/theoj-api";
-import { useUserStore } from "@/user.mts";
 
 const route = useRoute();
 const router = useRouter();
@@ -49,22 +49,22 @@ const fetchData = async () => {
 };
 
 const handleAddSolution = () => {
-  router.push(buildPath(routeMap.createSolution.path,
-    { id: problemId }
-  ))
+  router.push(buildPath(routeMap.createSolution.path, { id: problemId }));
 };
 
 const handleViewSolution = (solutionId: string) => {
   console.log(
     buildPath(routeMap.solution.path, {
       problemId: problemId,
-      solutionId: solutionId
-    })
-  )
-  router.push(buildPath(routeMap.solution.path, {
-    problemId: problemId,
-    solutionId: solutionId
-  }));
+      solutionId: solutionId,
+    }),
+  );
+  router.push(
+    buildPath(routeMap.solution.path, {
+      problemId: problemId,
+      solutionId: solutionId,
+    }),
+  );
 };
 
 onMounted(() => {

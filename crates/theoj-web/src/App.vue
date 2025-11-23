@@ -3,7 +3,7 @@ import { OpenAPI } from "@/theoj-api";
 import Footer from "./components/Footer.vue";
 import Header from "./components/Header.vue";
 import ModalContainer from "./components/Modal/ModalContainer.vue";
-import { useUserStore } from "./user.mts";
+import { useUserStore } from "./stores/user.mts";
 
 if (import.meta.env.DEV) {
   OpenAPI.BASE = "http://localhost:8080";

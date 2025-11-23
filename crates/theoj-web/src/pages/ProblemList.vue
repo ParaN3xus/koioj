@@ -6,13 +6,13 @@ import { useToast } from "vue-toastification";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
+import { useUserStore } from "@/stores/user.mjs";
 import {
   type ListProblemsResponse,
   ProblemService,
   UserRole,
   UserService,
 } from "@/theoj-api";
-import { useUserStore } from "@/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();

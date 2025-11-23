@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { type LoginResponse, OpenAPI, type RegisterResponse, UserService } from "./theoj-api";
+import { type LoginResponse, OpenAPI, type RegisterResponse, UserService } from "../theoj-api";
 
 export const useUserStore = defineStore("user", {
   state: () => ({

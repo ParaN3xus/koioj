@@ -7,6 +7,7 @@ import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { routeMap, routes } from "@/routes.mjs";
+import { useUserStore } from "@/stores/user.mjs";
 import {
   type GetProfileResponse,
   type PutProfileRequest,
@@ -14,7 +15,6 @@ import {
   UserRole,
   UserService,
 } from "@/theoj-api";
-import { useUserStore } from "@/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();

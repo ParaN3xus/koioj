@@ -57,7 +57,7 @@ const handleSubmit = async () => {
 };
 
 const handleCancel = () => {
-  router.push(buildPath(routeMap.solution.path, { id: problemId }));
+  router.push(buildPath(routeMap.problem.path, { id: problemId }));
 };
 
 onMounted(() => {
@@ -106,7 +106,7 @@ onMounted(() => {
             <PreviewableTextEdit v-model="formData.content" placeholder="Enter solution content (Markdown supported)"
               :rows="20" :show-preview="showContentPreview" :required="true" />
             <label class="label">
-              <span class="label-text-alt text-base-content/70">
+              <span class="label-text-alt text-base-content/70 inline-flex items-center gap-1">
                 <Icon icon="fa6-solid:circle-info" class="w-4 h-4 inline" />
                 Markdown is supported. You can use code blocks, images, and other Markdown syntax.
               </span>
@@ -115,7 +115,7 @@ onMounted(() => {
 
           <!-- Actions -->
           <div class="flex gap-4 justify-end">
-            <button type="button" @click="handleCancel" class="btn btn-ghost" :disabled="submitting">
+            <button type="button" @click="handleCancel" class="btn" :disabled="submitting">
               <Icon icon="fa6-solid:xmark" class="w-5 h-5" />
               Cancel
             </button>

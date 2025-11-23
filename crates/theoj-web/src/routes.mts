@@ -1,5 +1,8 @@
 import type { RouteComponent, RouteRecordRaw } from "vue-router";
+import Contest from "./pages/Contest.vue";
+import ContestList from "./pages/ContestList.vue";
 import CreateSolution from "./pages/CreateSolution.vue";
+import EditContest from "./pages/EditContest.vue";
 import EditProblem from "./pages/EditProblem.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
@@ -98,6 +101,41 @@ export const routeMap = createRoutes({
   },
   submission: {
     path: "/problem/:problemId/submission/:submissionId",
+    component: Submission,
+    title: "Submission - TheOJ",
+  },
+  contestList: {
+    path: "/contest",
+    component: ContestList,
+    title: "Contest - TheOJ",
+  },
+  createContest: {
+    path: "/contest/new",
+    component: EditContest,
+    title: "New Contest - TheOJ",
+  },
+  contest: {
+    path: "/contest/:id",
+    component: Contest,
+    title: "Contest - TheOJ",
+  },
+  editContest: {
+    path: "/contest/:id/edit",
+    component: EditContest,
+    title: "Edit Contest - TheOJ",
+  },
+  contestProblem: {
+    path: "/contest/:contestId/problem/:problemId",
+    component: Problem,
+    title: "Problem - TheOJ",
+  },
+  contestSubmit: {
+    path: "/contest/:contestId/problem/:problemId/submit",
+    component: Submit,
+    title: "Submit - TheOJ",
+  },
+  contestSubmission: {
+    path: "/contest/:contestId/problem/:problemId/submission/:submissionId",
     component: Submission,
     title: "Submission - TheOJ",
   },

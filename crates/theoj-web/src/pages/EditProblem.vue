@@ -8,6 +8,7 @@ import PreviewableTextEdit from "@/components/PreviewableTextEdit.vue";
 import TestCaseEditor from "@/components/TestCaseEditor.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
+import { useUserStore } from "@/stores/user.mjs";
 import {
   type CreateProblemRequest,
   type GetProblemResponse,
@@ -18,7 +19,6 @@ import {
   UserRole,
   UserService,
 } from "@/theoj-api";
-import { useUserStore } from "@/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
