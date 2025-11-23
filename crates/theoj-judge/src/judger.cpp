@@ -3,7 +3,7 @@
 // https://github.com/lrw04/jury
 // Copyright (C) 2023 lrw04 <2428592483@qq.com>
 //
-// https://github.com/paraN3xus/theoj
+// https://github.com/ParaN3xus/theoj
 // Copyright (C) 2025 ParaN3xus <paran3xus007@gmail.com>
 
 #include <cerrno>
