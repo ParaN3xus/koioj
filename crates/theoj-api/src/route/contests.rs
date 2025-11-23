@@ -202,7 +202,8 @@ async fn check_contest_password(
     match (contest.password, password) {
         (None, _) => Ok(()), // No password required
         (Some(_), None) => bail!(@FORBIDDEN "contest password required"),
-        (Some(hash), Some(pwd)) => verify_password(pwd, hash),
+        (Some(hash), Some(pwd)) => verify_password(pwd, hash)
+            .map_err(|_| Error::msg("contest password wrong").status_code(StatusCode::FORBIDDEN)),
     }
 }
 
@@ -236,7 +237,7 @@ pub(crate) struct ListContestsResponse {
 #[utoipa::path(
     get,
     path = "/api/contests",
-    params(ListContestsQuery),  
+    params(ListContestsQuery),
     responses(
         (status = 200, body = ListContestsResponse),
     ),
@@ -570,14 +571,15 @@ async fn put_contest(
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
-        for problem_id in problem_ids {
+        for (i, problem_id) in problem_ids.iter().enumerate() {
             sqlx::query!(
                 r#"
-                INSERT INTO contest_problems (contest_id, problem_id)
-                VALUES ($1, $2)
+                INSERT INTO contest_problems (contest_id, problem_id, number)
+                VALUES ($1, $2, $3)
                 "#,
                 contest_id,
-                problem_id
+                problem_id,
+                i as i32
             )
             .execute(&state.pool)
             .await
