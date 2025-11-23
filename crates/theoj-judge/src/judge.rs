@@ -145,9 +145,9 @@ async fn judge_submission(
             tmpfs_size,
             &cgroup_base,
             &format!("theoj_judge_{}_compile", submission_id),
-            time_limit.into(),
-            memory_limit.into(),
-            pids_limit,
+            5000,
+            512,
+            128,
             "",
             &compile_cmd
                 .iter()
@@ -165,7 +165,13 @@ async fn judge_submission(
             Ok(res) if res.verdict == crate::judger::Verdict::Ok => {
                 compile_result = Some(res);
             }
-            Ok(_) => {
+            Ok(res) => {
+                tracing::debug!(
+                    "Submission {} compile error: {:?}, time {}",
+                    submission_id,
+                    res.verdict,
+                    res.time
+                );
                 return JudgeToApiMessage::JudgeResult(JudgeResult {
                     submission_id,
                     result: SubmissionResult::CompileError,

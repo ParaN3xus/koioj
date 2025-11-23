@@ -357,7 +357,7 @@ int container_init(void *arg) {
   std::string mem_peak = read_file(cgroup_path + "/memory.peak");
   std::string mem_events = read_file(cgroup_path + "/memory.events");
 
-  res.time = stoll(get_cgroup_key(cpu_stat, "user_usec"));
+  res.time = stoll(get_cgroup_key(cpu_stat, "user_usec")) / 1000;
   res.memory = (mem_peak.empty() ? 0 : stoll(mem_peak)) / 1024 / 1024;
   int oom = stoi(get_cgroup_key(mem_events, "oom_kill"));
 
