@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import InputModal from "@/components/Modal/modals/InputModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
@@ -97,7 +98,7 @@ const { open: handleDeleteContest, close: closeDeleteContestModal } = useModal({
   },
   slots: {
     default:
-      "<p>Are you sure you want to delete this contest? This action cannot be undone.</p>"
+      "<p>Are you sure you want to delete this contest? This action cannot be undone.</p>",
   },
 });
 
@@ -319,15 +320,18 @@ onMounted(async () => {
                 <thead>
                   <tr>
                     <th class="w-16">#</th>
-                    <th>Problem ID</th>
+                    <th>Problem</th>
                     <th>Status</th>
-                    <th class="w-32">Action</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(problemId, index) in contestData.problemIds" :key="problemId">
                     <td>{{ String.fromCharCode(65 + index) }}</td>
-                    <td>{{ problemId }}</td>
+                    <td>
+                      <EntityLink entity-type="contestProblem" :entity-id="problemId.toString()"
+                        :contest-id="contestId" />
+                    </td>
                     <td>
                       <template v-if="getProblemStatusIcon(problemId.toString())">
                         <!-- TODO: does this icon need 'inline-flex items-center'? -->
@@ -336,12 +340,9 @@ onMounted(async () => {
                       </template>
                       <span v-else class="text-sm opacity-50">Not attempted</span>
                     </td>
-                    <td>
-                      <RouterLink
-                        :to="buildPath(routeMap.contestProblem.path, { contestId: contestId.toString(), problemId: problemId.toString() })"
-                        class="btn btn-sm btn-primary">
-                        View
-                      </RouterLink>
+                    <td class="text-right">
+                      <EntityLink entity-type="contestProblem" :entity-id="problemId.toString()" :contest-id="contestId"
+                        display-type="button" />
                     </td>
                   </tr>
                 </tbody>
@@ -371,9 +372,9 @@ onMounted(async () => {
                   <tr v-for="(item, index) in rankingData.rankings" :key="item.userId">
                     <td>{{ index + 1 }}</td>
                     <td>
-                      <RouterLink :to="buildPath(routeMap.profile.path, { id: item.userId })" class="link link-primary">
+                      <EntityLink entity-type="user" :entity-id="item.userId">
                         {{ item.username }}
-                      </RouterLink>
+                      </EntityLink>
                     </td>
                     <td>{{ item.solvedCount }}</td>
                     <td>{{ item.totalPenalty }}</td>

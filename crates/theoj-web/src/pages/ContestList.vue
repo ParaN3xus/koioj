@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import EntityLink from "@/components/EntityLink.vue";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
@@ -146,10 +147,9 @@ const getContestTypeColor = (type: ContestType) => {
               <tr v-for="contest in contestsData.contests" :key="contest.contestId">
                 <td>
                   <div class="flex items-center gap-2">
-                    <RouterLink :to="buildPath(routeMap.contest.path, { id: contest.contestId })"
-                      class="link link-primary font-semibold">
+                    <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="link">
                       {{ contest.name }}
-                    </RouterLink>
+                    </EntityLink>
                     <Icon v-if="contest.hasPassword" icon="fa6-solid:lock" width="14" class="text-warning" />
                   </div>
                 </td>
@@ -161,10 +161,7 @@ const getContestTypeColor = (type: ContestType) => {
                 <td>{{ formatDateTime(contest.beginTime) }}</td>
                 <td>{{ formatDateTime(contest.endTime) }}</td>
                 <td class="text-right">
-                  <RouterLink :to="buildPath(routeMap.contest.path, { id: contest.contestId })"
-                    class="btn btn-ghost btn-sm">
-                    <Icon icon="fa6-solid:arrow-right" width="16" />
-                  </RouterLink>
+                  <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="button" />
                 </td>
               </tr>
             </tbody>

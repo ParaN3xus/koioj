@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import EntityLink from "@/components/EntityLink.vue";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
@@ -109,16 +110,12 @@ const handlePageChange = (page: number) => {
               <tr v-for="problem in problemsData.problems" :key="problem.problemId">
                 <td>{{ problem.problemId }}</td>
                 <td>
-                  <RouterLink :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
-                    class="link link-primary font-semibold">
+                  <EntityLink entity-type="problem" :entity-id="problem.problemId" display-type="link">
                     {{ problem.name }}
-                  </RouterLink>
+                  </EntityLink>
                 </td>
                 <td class="text-right">
-                  <RouterLink :to="buildPath(routeMap.problem.path, { id: problem.problemId })"
-                    class="btn btn-ghost btn-sm">
-                    <Icon icon="fa6-solid:arrow-right" width="16" />
-                  </RouterLink>
+                  <EntityLink entity-type="problem" :entity-id="problem.problemId" display-type="button" />
                 </td>
               </tr>
             </tbody>

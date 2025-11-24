@@ -2,6 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import EntityLink from "@/components/EntityLink.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
@@ -111,25 +112,24 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="solution in solutions" :key="solution.solutionId" class=" cursor-pointer"
-                @click="handleViewSolution(solution.solutionId)">
-                <td class="font-semibold">
-                  <RouterLink
-                    :to="buildPath(routeMap.solution.path, { problemId: problemId, solutionId: solution.solutionId })"
-                    class="link link-primary font-semibold">
+              <tr v-for="solution in solutions" :key="solution.solutionId">
+                <td>
+                  <EntityLink entity-type="solution" :entity-id="solution.solutionId" :problem-id="problem?.problemId"
+                    display-type="link">
                     {{ solution.title }}
-                  </RouterLink>
+                  </EntityLink>
                 </td>
                 <td>
-                  {{ solution.authorName }}
+                  <EntityLink entity-type="user" :entity-id="solution.authorId" display-type="link">
+                    {{ solution.authorName }}
+                  </EntityLink>
                 </td>
                 <td>
                   {{ new Date(solution.createdAt).toLocaleDateString() }}
                 </td>
                 <td class="text-right">
-                  <button class="btn btn-ghost btn-sm">
-                    <Icon icon="fa6-solid:arrow-right" width="16" />
-                  </button>
+                  <EntityLink entity-type="solution" :entity-id="solution.solutionId" :problem-id="problem?.problemId"
+                    display-type="button" />
                 </td>
               </tr>
             </tbody>
