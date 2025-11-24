@@ -9,6 +9,7 @@ import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import InputModal from "@/components/Modal/modals/InputModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
+import { useContestPasswordPrompt } from "@/composables/useContestPasswordPrompt.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
@@ -49,35 +50,16 @@ const isAdminOrTeacher = computed(() => {
   );
 });
 
-const promptForPassword = (isWrongPassword = false) => {
-  const { open, close } = useModal({
-    component: InputModal,
-    attrs: {
-      title: "Contest Password Required",
-      placeholder: "Enter contest password",
-      inputType: "password",
-      confirmText: "Submit",
-      cancelText: "Cancel",
-      errorMessage: isWrongPassword
-        ? "Incorrect password. Please try again."
-        : "",
-      initialValue: contestId.value
-        ? contestPasswordStore.getPassword(Number(contestId.value)) || ""
-        : "",
-      async onConfirm(password: string) {
-        if (contestId.value) {
-          close();
-          await loadContestData(contestId.value, password);
-        }
-      },
-      onCancel() {
-        router.push(routeMap.contestList.path);
-        close();
-      },
-    },
-  });
-  open();
-};
+const { promptForPassword } = useContestPasswordPrompt({
+  contestId: Number(contestId.value),
+  onPasswordSubmit: async (password: string) => {
+    if (!contestId.value) {
+      toast.error("invalid contestId");
+      return;
+    }
+    await loadContestData(contestId.value, password);
+  },
+});
 
 const { open: handleDeleteContest, close: closeDeleteContestModal } = useModal({
   component: ConfirmModal,
@@ -158,7 +140,6 @@ const loadContestData = async (id: string, password?: string) => {
   }
 };
 
-
 const loadRankingData = async () => {
   if (!contestId.value) return;
 
@@ -197,8 +178,6 @@ const handleEditContest = () => {
   if (!contestId.value) return;
   router.push(buildPath(routeMap.editContest.path, { id: contestId.value }));
 };
-
-
 
 const switchTab = async (tab: "problems" | "ranking") => {
   activeTab.value = tab;

@@ -3,13 +3,11 @@ import { Icon } from "@iconify/vue";
 import { nextTick, onMounted, type Ref, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import InputModal from "@/components/Modal/modals/InputModal.vue";
-import { useModal } from "@/components/Modal/useModal.mjs";
 import PreviewableTextEdit from "@/components/PreviewableTextEdit.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
+import { useContestPasswordPrompt } from "@/composables/useContestPasswordPrompt.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mts";
-
 // biome-ignore lint/style/useImportType: <ContestStatus is used as enum values in the template section>
 import {
   ContestService,
@@ -52,32 +50,16 @@ const previewProblem = ref<{ id: number; name: string } | null>(null);
 const problemIdInputRef = ref<HTMLInputElement | null>(null);
 
 const contestPasswordStore = useContestPasswordStore();
-const promptForPassword = (isWrongPassword = false) => {
-  const { open, close } = useModal({
-    component: InputModal,
-    attrs: {
-      title: "Contest Password Required",
-      placeholder: "Enter contest password",
-      inputType: "password",
-      confirmText: "Submit",
-      cancelText: "Cancel",
-      errorMessage: isWrongPassword ? "Incorrect password. Please try again." : "",
-      initialValue: contestId.value ? contestPasswordStore.getPassword(Number(contestId.value)) || "" : "",
-      async onConfirm(password: string) {
-        if (contestId.value) {
-          close();
-          await loadContestData(contestId.value, password);
-        }
-      },
-      onCancel() {
-        router.push(routeMap.contestList.path);
-        close();
-      },
-    },
-  });
-  open();
-};
-
+const { promptForPassword } = useContestPasswordPrompt({
+  contestId: Number(contestId.value),
+  onPasswordSubmit: async (password: string) => {
+    if (!contestId.value) {
+      toast.error("invalid contestId");
+      return;
+    }
+    await loadContestData(contestId.value, password);
+  },
+});
 
 const getLabel = (index: number): string => {
   return String.fromCharCode(65 + index); // 65 is 'A'
@@ -172,8 +154,12 @@ const handleDragEnd = () => {
 const loadContestData = async (id: string, password?: string) => {
   isLoading.value = true;
   try {
-    const storedPassword = password ?? contestPasswordStore.getPassword(Number(id));
-    const response = await ContestService.getContest(id, storedPassword ?? undefined);
+    const storedPassword =
+      password ?? contestPasswordStore.getPassword(Number(id));
+    const response = await ContestService.getContest(
+      id,
+      storedPassword ?? undefined,
+    );
     // If success and password was used, save it
     if (storedPassword) {
       contestPasswordStore.setPassword(Number(id), storedPassword);
@@ -209,7 +195,8 @@ const loadContestData = async (id: string, password?: string) => {
 
     // Check if it's a password-related error
     if (err.status === 403) {
-      const body = typeof err.body === "string" ? JSON.parse(err.body) : err.body;
+      const body =
+        typeof err.body === "string" ? JSON.parse(err.body) : err.body;
       const message = body?.message || "";
 
       if (message === "contest password required") {
@@ -293,7 +280,10 @@ const handleSubmit = async () => {
 
       await ContestService.putContest(contestId.value, requestData);
       if (requestData.password) {
-        contestPasswordStore.setPassword(Number(contestId.value), requestData.password);
+        contestPasswordStore.setPassword(
+          Number(contestId.value),
+          requestData.password,
+        );
       }
       toast.success("Contest updated successfully!");
       // router.push(buildPath(routeMap.contest.path, { id: contestId.value }));
@@ -312,7 +302,10 @@ const handleSubmit = async () => {
 
       const response = await ContestService.createContest(requestData);
       if (requestData.password) {
-        contestPasswordStore.setPassword(Number(response.contestId), requestData.password);
+        contestPasswordStore.setPassword(
+          Number(response.contestId),
+          requestData.password,
+        );
       }
       toast.success("Contest created successfully!");
       // router.push(buildPath(routeMap.contest.path, { id: response.contestId }));
