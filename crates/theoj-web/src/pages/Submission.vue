@@ -2,6 +2,8 @@
 import { Icon } from "@iconify/vue";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
+import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
+import TestCaseResultBadge from "@/components/Badges/TestCaseResultBadge.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
@@ -36,35 +38,11 @@ const contestData = ref<GetContestResponse | null>(null);
 const isLoading = ref<boolean>(true);
 const pollingTimer = ref<number | null>(null);
 
-const resultColors: Record<SubmissionResult, string> = {
-  [SubmissionResult.PENDING]: "badge-warning",
-  [SubmissionResult.ACCEPTED]: "badge-success",
-  [SubmissionResult.WRONG_ANSWER]: "badge-error",
-  [SubmissionResult.TIME_LIMIT_EXCEEDED]: "badge-error",
-  [SubmissionResult.MEMORY_LIMIT_EXCEEDED]: "badge-error",
-  [SubmissionResult.RUNTIME_ERROR]: "badge-error",
-  [SubmissionResult.COMPILE_ERROR]: "badge-error",
-  [SubmissionResult.UNKNOWN_ERROR]: "badge-error",
-};
-
-const testCaseResultColors: Record<TestCaseJudgeResult, string> = {
-  [TestCaseJudgeResult.PENDING]: "badge-warning",
-  [TestCaseJudgeResult.COMPILING]: "badge-info",
-  [TestCaseJudgeResult.RUNNING]: "badge-info",
-  [TestCaseJudgeResult.ACCEPTED]: "badge-success",
-  [TestCaseJudgeResult.WRONG_ANSWER]: "badge-error",
-  [TestCaseJudgeResult.TIME_LIMIT_EXCEEDED]: "badge-error",
-  [TestCaseJudgeResult.MEMORY_LIMIT_EXCEEDED]: "badge-error",
-  [TestCaseJudgeResult.RUNTIME_ERROR]: "badge-error",
-  [TestCaseJudgeResult.COMPILE_ERROR]: "badge-error",
-  [TestCaseJudgeResult.UNKNOWN_ERROR]: "badge-error",
-};
-
 const fetchSubmission = async () => {
   try {
     const submissionResponse = await ProblemService.getSubmission(
       problemId.value,
-      submissionId.value
+      submissionId.value,
     );
     submission.value = submissionResponse;
 
@@ -75,7 +53,7 @@ const fetchSubmission = async () => {
       );
       const contestResponse = await ContestService.getContest(
         contestId.value,
-        storedPassword || null
+        storedPassword || null,
       );
       contestData.value = contestResponse;
       document.title = `Submission of ${submissionResponse.problemName} in ${contestResponse.name} - TheOJ`;
@@ -93,14 +71,6 @@ const fetchSubmission = async () => {
     handleApiError(error);
     isLoading.value = false;
   }
-};
-
-
-const formatResult = (result: string): string => {
-  return result
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
 };
 
 onMounted(() => {
@@ -161,9 +131,7 @@ onUnmounted(() => {
             </div>
             <div>
               <p class="text-sm text-gray-500">Result</p>
-              <div class="badge" :class="resultColors[submission.result]">
-                {{ formatResult(submission.result) }}
-              </div>
+              <SubmissionResultBadge :result="submission.result" />
             </div>
             <div v-if="submission.timeConsumption !== null">
               <p class="text-sm text-gray-500">Time</p>
@@ -190,9 +158,7 @@ onUnmounted(() => {
                   <tr v-for="testCase in submission.testCaseResults" :key="testCase.testCaseId">
                     <td class="font-mono">{{ testCase.testCaseId }}</td>
                     <td>
-                      <div class="badge" :class="testCaseResultColors[testCase.result]">
-                        {{ formatResult(testCase.result) }}
-                      </div>
+                      <TestCaseResultBadge :result="testCase.result" />
                     </td>
                   </tr>
                 </tbody>
