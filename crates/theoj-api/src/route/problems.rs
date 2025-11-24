@@ -1376,11 +1376,17 @@ pub(crate) struct GetAcStatusResponse {
     status: Option<SubmissionResult>,
 }
 
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+struct GetAcStatusQuery {
+    contest_id: Option<i32>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/problems/{problem_id}/ac-status",
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = String, Path),
+        ("contest_id" = Option<i32>, Query, description = "Optional contest ID to filter submissions")
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -1392,40 +1398,74 @@ async fn get_ac_status(
     state: State,
     claims: Extension<Claims>,
     Path(problem_id): Path<String>,
+    Query(params): Query<GetAcStatusQuery>,
 ) -> Result<Json<GetAcStatusResponse>> {
     let problem_id_int: i32 = problem_id
         .parse()
         .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
 
-    let accepted_count: i64 = sqlx::query_scalar!(
-        r#"
-        SELECT COUNT(*) FROM submissions
-        WHERE problem_id = $1 AND user_id = $2 AND result = 'accepted'
-        "#,
-        problem_id_int,
-        claims.sub
-    )
-    .fetch_one(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .unwrap_or(0);
-
-    let status = if accepted_count > 0 {
-        Some(SubmissionResult::Accepted)
+    let accepted_count: i64 = if let Some(contest_id) = params.contest_id {
+        sqlx::query_scalar!(
+            r#"
+            SELECT COUNT(*) FROM submissions
+            WHERE problem_id = $1 AND user_id = $2 AND contest_id = $3 AND result = 'accepted'
+            "#,
+            problem_id_int,
+            claims.sub,
+            contest_id
+        )
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .unwrap_or(0)
     } else {
         sqlx::query_scalar!(
             r#"
-            SELECT result as "result: SubmissionResult" FROM submissions
-            WHERE problem_id = $1 AND user_id = $2
-            ORDER BY created_at DESC
-            LIMIT 1
+            SELECT COUNT(*) FROM submissions
+            WHERE problem_id = $1 AND user_id = $2 AND result = 'accepted'
             "#,
             problem_id_int,
             claims.sub
         )
-        .fetch_optional(&state.pool)
+        .fetch_one(&state.pool)
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .unwrap_or(0)
+    };
+
+    let status = if accepted_count > 0 {
+        Some(SubmissionResult::Accepted)
+    } else {
+        if let Some(contest_id) = params.contest_id {
+            sqlx::query_scalar!(
+                r#"
+                SELECT result as "result: SubmissionResult" FROM submissions
+                WHERE problem_id = $1 AND user_id = $2 AND contest_id = $3
+                ORDER BY created_at DESC
+                LIMIT 1
+                "#,
+                problem_id_int,
+                claims.sub,
+                contest_id
+            )
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        } else {
+            sqlx::query_scalar!(
+                r#"
+                SELECT result as "result: SubmissionResult" FROM submissions
+                WHERE problem_id = $1 AND user_id = $2
+                ORDER BY created_at DESC
+                LIMIT 1
+                "#,
+                problem_id_int,
+                claims.sub
+            )
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        }
     };
 
     Ok(Json(GetAcStatusResponse {
