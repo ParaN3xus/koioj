@@ -4,13 +4,12 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
+import { useContestPasswordPrompt } from "@/composables/useContestPasswordPrompt.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import {
-  type CancelablePromise,
   ContestService,
   type GetContestResponse,
-  type GetProblemResponse,
   ProblemService,
   type SubmitRequest,
 } from "@/theoj-api";
@@ -46,20 +45,38 @@ const languages = [
   { value: "python", label: "Python" },
 ];
 
-onMounted(async () => {
+const { promptForPassword } = useContestPasswordPrompt({
+  contestId: Number(contestId.value),
+  onPasswordSubmit: async (password: string) => {
+    if (!contestId.value) {
+      toast.error("invalid contestId");
+      return;
+    }
+    await loadProblemAndContestData(password);
+  },
+});
+
+const loadProblemAndContestData = async (password?: string) => {
   try {
     const problemResponse = await ProblemService.getProblem(problemId.value);
     problemName.value = problemResponse.name;
 
     // If in contest mode, also fetch contest data
     if (isContestMode.value && contestId.value) {
-      const storedPassword = contestPasswordStore.getPassword(
-        Number(contestId.value),
-      );
+      const storedPassword =
+        password || contestPasswordStore.getPassword(Number(contestId.value));
+
       const contestResponse = await ContestService.getContest(
         contestId.value,
-        storedPassword || null
+        storedPassword || null,
       );
+
+      if (storedPassword && !password) {
+        // Verify stored password is still valid
+        contestPasswordStore.setPassword(Number(contestId.value), storedPassword);
+      } else if (password) {
+        contestPasswordStore.setPassword(Number(contestId.value), password);
+      }
       contestData.value = contestResponse;
       document.title = `Submitting to ${problemResponse.name} in ${contestResponse.name} - TheOJ`;
     } else {
@@ -68,8 +85,11 @@ onMounted(async () => {
   } catch (e) {
     handleApiError(e);
   }
-});
+};
 
+onMounted(async () => {
+  await loadProblemAndContestData();
+});
 
 const handleSubmit = async () => {
   if (!code.value.trim()) {
@@ -92,7 +112,7 @@ const handleSubmit = async () => {
 
     if (isContestMode.value) {
       if (!contestId.value) {
-        toast.error("invalid contest!")
+        toast.error("invalid contest!");
         return;
       }
       router.push(
