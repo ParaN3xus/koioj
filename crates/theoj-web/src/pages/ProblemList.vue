@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import ProblemStatusBadge from "@/components/Badges/ProblemStatusBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
@@ -102,6 +103,7 @@ const handlePageChange = (page: number) => {
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Status</th>
                 <th>Name</th>
                 <th></th>
               </tr>
@@ -109,6 +111,9 @@ const handlePageChange = (page: number) => {
             <tbody>
               <tr v-for="problem in problemsData.problems" :key="problem.problemId">
                 <td>{{ problem.problemId }}</td>
+                <td>
+                  <ProblemStatusBadge :problem-id="problem.problemId" />
+                </td>
                 <td>
                   <EntityLink entity-type="problem" :entity-id="problem.problemId" display-type="link">
                     {{ problem.name }}

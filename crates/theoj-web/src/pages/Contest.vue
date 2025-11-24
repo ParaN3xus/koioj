@@ -3,6 +3,7 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import ProblemStatusBadge from "@/components/Badges/ProblemStatusBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import InputModal from "@/components/Modal/modals/InputModal.vue";
@@ -40,7 +41,6 @@ const contestData = ref<GetContestResponse | null>(null);
 const currentUserRole = ref<UserRole | null>(null);
 const activeTab = ref<"problems" | "ranking">("problems");
 const rankingData = ref<GetContestRankingResponse | null>(null);
-const problemStatuses = ref<Map<string, GetAcStatusResponse>>(new Map());
 
 const isAdminOrTeacher = computed(() => {
   return (
@@ -128,11 +128,6 @@ const loadContestData = async (id: string, password?: string) => {
       currentUserRole.value = roleResponse.role;
     }
 
-    // Load problem statuses if user is logged in
-    if (userStore.userId && response.problemIds.length > 0) {
-      await loadProblemStatuses(response.problemIds);
-    }
-
     isLoading.value = false;
   } catch (e: unknown) {
     const err = e as { status?: number; body?: string | { message?: string } };
@@ -163,18 +158,6 @@ const loadContestData = async (id: string, password?: string) => {
   }
 };
 
-const loadProblemStatuses = async (problemIds: number[]) => {
-  const promises = problemIds.map(async (id) => {
-    try {
-      const status = await ProblemService.getAcStatus(id.toString());
-      problemStatuses.value.set(id.toString(), status);
-    } catch (e) {
-      console.error(`Failed to load status for problem ${id}:`, e);
-    }
-  });
-
-  await Promise.all(promises);
-};
 
 const loadRankingData = async () => {
   if (!contestId.value) return;
@@ -215,17 +198,7 @@ const handleEditContest = () => {
   router.push(buildPath(routeMap.editContest.path, { id: contestId.value }));
 };
 
-const getProblemStatusIcon = (problemId: string) => {
-  const status = problemStatuses.value.get(problemId);
-  if (!status) return null;
 
-  if (status.status === SubmissionResult.ACCEPTED) {
-    return { icon: "fa6-solid:circle-check", color: "text-success" };
-  } else if (status.tried) {
-    return { icon: "fa6-solid:circle-xmark", color: "text-error" };
-  }
-  return null;
-};
 
 const switchTab = async (tab: "problems" | "ranking") => {
   activeTab.value = tab;
@@ -333,12 +306,7 @@ onMounted(async () => {
                         :contest-id="contestId" />
                     </td>
                     <td>
-                      <template v-if="getProblemStatusIcon(problemId.toString())">
-                        <!-- TODO: does this icon need 'inline-flex items-center'? -->
-                        <Icon :icon="getProblemStatusIcon(problemId.toString())!.icon"
-                          :class="['text-xl', getProblemStatusIcon(problemId.toString())!.color]" />
-                      </template>
-                      <span v-else class="text-sm opacity-50">Not attempted</span>
+                      <ProblemStatusBadge :problem-id="problemId.toString()" :contest-id="parseInt(contestId)" />
                     </td>
                     <td class="text-right">
                       <EntityLink entity-type="contestProblem" :entity-id="problemId.toString()" :contest-id="contestId"
