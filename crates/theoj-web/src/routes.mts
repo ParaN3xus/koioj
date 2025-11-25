@@ -4,6 +4,7 @@ import ContestList from "./pages/ContestList.vue";
 import CreateSolution from "./pages/CreateSolution.vue";
 import EditContest from "./pages/EditContest.vue";
 import EditProblem from "./pages/EditProblem.vue";
+import EditTrainingPlan from "./pages/EditTrainingPlan.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
 import NotFound from "./pages/NotFound.vue";
@@ -15,6 +16,8 @@ import Solution from "./pages/Solution.vue";
 import SolutionList from "./pages/SolutionList.vue";
 import Submission from "./pages/Submission.vue";
 import Submit from "./pages/Submit.vue";
+import TrainingPlan from "./pages/TrainingPlan.vue";
+import TrainingPlanList from "./pages/TrainingPlanList.vue";
 
 const createRoutes = <
   T extends Record<
@@ -138,6 +141,26 @@ export const routeMap = createRoutes({
     path: "/contest/:contestId/problem/:problemId/submission/:submissionId",
     component: Submission,
     title: "Submission - TheOJ",
+  },
+  trainingPlanList: {
+    path: "/training",
+    component: TrainingPlanList,
+    title: "Training Plan - TheOJ",
+  },
+  createTrainingPlan: {
+    path: "/training/new",
+    component: EditTrainingPlan,
+    title: "New Training Plan - TheOJ",
+  },
+  editTrainingPlan: {
+    path: "/training/:id/edit",
+    component: EditTrainingPlan,
+    title: "Edit Training Plan - TheOJ",
+  },
+  trainingPlan: {
+    path: "/training/:id",
+    component: TrainingPlan,
+    title: "Training Plan - TheOJ",
   },
   notFound: {
     path: "/:pathMatch(.*)*",

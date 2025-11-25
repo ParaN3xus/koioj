@@ -7,6 +7,7 @@ import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
 import type { GetProblemResponse, GetSolutionResponse } from "@/theoj-api";
 import { ProblemService } from "@/theoj-api";
+import { formatDateTime } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -41,11 +42,6 @@ const fetchData = async () => {
   }
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleString();
-};
-
 const goBack = () => {
   router.push(buildPath(routeMap.solution.path, { id: problemId }));
 };
@@ -78,7 +74,7 @@ onMounted(() => {
               </div>
               <div class="flex items-center gap-2">
                 <Icon icon="fa6-solid:calendar" class="w-4 h-4" />
-                <span>{{ formatDate(solution.createdAt) }}</span>
+                <span>{{ formatDateTime(solution.createdAt) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <Icon icon="fa6-solid:hashtag" class="w-4 h-4" />

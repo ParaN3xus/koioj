@@ -3,20 +3,17 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import ContestStatusBadge from "@/components/Badges/ContestStatusBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 import {
-  ContestService,
-  ContestType,
-  type ListContestsResponse,
+  type ListTrainingPlansResponse,
+  TrainingPlanService,
   UserRole,
   UserService,
 } from "@/theoj-api";
-import { formatDateTime } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -24,7 +21,7 @@ const toast = useToast();
 const userStore = useUserStore();
 
 const currentUserRole = ref<UserRole | null>(null);
-const contestsData = ref<ListContestsResponse | null>(null);
+const trainingPlansData = ref<ListTrainingPlansResponse | null>(null);
 const isLoading = ref(true);
 
 const currentPage = ref(1);
@@ -41,7 +38,7 @@ const handleDateInput = (event: Event) => {
   endAfter.value = new Date(`${dateStr}T00:00:00Z`).toISOString();
 };
 
-const canManageContests = computed(() => {
+const canManageTrainingPlans = computed(() => {
   return (
     currentUserRole.value === UserRole.ADMIN ||
     currentUserRole.value === UserRole.TEACHER
@@ -49,24 +46,24 @@ const canManageContests = computed(() => {
 });
 
 const totalPages = computed(() => {
-  if (!contestsData.value?.total) return 0;
-  return Math.ceil(contestsData.value.total / pageSize.value);
+  if (!trainingPlansData.value?.total) return 0;
+  return Math.ceil(trainingPlansData.value.total / pageSize.value);
 });
 
-const loadContests = async () => {
+const loadTrainingPlans = async () => {
   isLoading.value = true;
   try {
     const roleResponse = await UserService.getRole(userStore.userId);
     currentUserRole.value = roleResponse.role;
 
-    const response = await ContestService.listContests(
+    const response = await TrainingPlanService.listTrainingPlans(
       currentPage.value,
       pageSize.value,
       endAfter.value,
     );
-    contestsData.value = response;
+    trainingPlansData.value = response;
 
-    toast.success("Contests loaded!");
+    toast.success("Training plans loaded!");
   } catch (e) {
     handleApiError(e);
   } finally {
@@ -75,30 +72,27 @@ const loadContests = async () => {
 };
 
 onMounted(() => {
-  loadContests();
+  loadTrainingPlans();
 });
 
-const handleAddContest = () => {
-  router.push(routeMap.createContest.path);
+const handleAddTrainingPlan = () => {
+  router.push(routeMap.createTrainingPlan.path);
 };
 
-const handleViewContest = (contestId: string) => {
-  router.push(buildPath(routeMap.contest.path, { id: contestId }));
+const handleViewTrainingPlan = (trainingPlanId: string) => {
+  router.push(buildPath(routeMap.trainingPlan.path, { id: trainingPlanId }));
 };
 
 const handlePageChange = (page: number) => {
   currentPage.value = page;
-  loadContests();
+  loadTrainingPlans();
 };
 
 const handleFilterChange = () => {
   currentPage.value = 1;
-  loadContests();
+  loadTrainingPlans();
 };
 
-const getContestTypeColor = (type: ContestType) => {
-  return type === ContestType.PUBLIC ? "badge-success" : "badge-warning";
-};
 </script>
 
 <template>
@@ -107,12 +101,12 @@ const getContestTypeColor = (type: ContestType) => {
       <div class="card-body">
         <div class="flex items-center justify-between mb-4">
           <h2 class="card-title">
-            Contests
+            Training Plans
           </h2>
 
-          <button v-if="canManageContests" class="btn btn-primary" @click="handleAddContest">
+          <button v-if="canManageTrainingPlans" class="btn btn-primary" @click="handleAddTrainingPlan">
             <Icon icon="fa6-solid:plus" width="16" />
-            Add Contest
+            Add Training Plan
           </button>
         </div>
 
@@ -129,41 +123,28 @@ const getContestTypeColor = (type: ContestType) => {
           <span class="loading loading-spinner loading-lg"></span>
         </div>
 
-        <!-- Contests Table -->
-        <div v-else-if="contestsData?.contests.length" class="overflow-x-auto">
+        <!-- Training Plans Table -->
+        <div v-else-if="trainingPlansData?.plans.length" class="overflow-x-auto">
           <table class="table table-zebra">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Name</th>
-                <th v-if="canManageContests">Type</th>
-                <th>Begin Time</th>
-                <th>End Time</th>
-                <th>Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="contest in contestsData.contests" :key="contest.contestId">
+              <tr v-for="plan in trainingPlansData.plans" :key="plan.id">
                 <td>
-                  <div class="flex items-center gap-2">
-                    <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="link">
-                      {{ contest.name }}
-                    </EntityLink>
-                    <Icon v-if="contest.hasPassword" icon="fa6-solid:lock" width="14" class="text-warning" />
-                  </div>
+                  {{ plan.id }}
                 </td>
-                <td v-if="canManageContests">
-                  <span class="badge" :class="getContestTypeColor(contest.type)">
-                    {{ contest.type }}
-                  </span>
-                </td>
-                <td>{{ formatDateTime(contest.beginTime) }}</td>
-                <td>{{ formatDateTime(contest.endTime) }}</td>
                 <td>
-                  <ContestStatusBadge :begin-time="contest.beginTime" :end-time="contest.endTime" />
+                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id.toString()" display-type="link">
+                    {{ plan.name }}
+                  </EntityLink>
                 </td>
                 <td class="text-right">
-                  <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="button" />
+                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id.toString()" display-type="button" />
                 </td>
               </tr>
             </tbody>
@@ -173,16 +154,16 @@ const getContestTypeColor = (type: ContestType) => {
         <!-- Empty -->
         <div v-else class="flex flex-col items-center justify-center py-12 text-base-content/70">
           <Icon icon="fa6-solid:inbox" width="48" class="mb-4" />
-          <p>No contests found</p>
+          <p>No training plans found</p>
         </div>
 
-        <Pagination v-if="!isLoading && contestsData?.contests.length" :current-page="currentPage"
+        <Pagination v-if="!isLoading && trainingPlansData?.plans.length" :current-page="currentPage"
           :last-page="totalPages" @page-change="handlePageChange" />
 
         <!-- Total Info -->
-        <div v-if="!isLoading && contestsData?.contests.length" class="text-center text-sm text-base-content/70 mt-2">
+        <div v-if="!isLoading && trainingPlansData?.plans.length" class="text-center text-sm text-base-content/70 mt-2">
           Page {{ currentPage }} of {{ totalPages }} (Total:
-          {{ contestsData.total }} contests)
+          {{ trainingPlansData.total }} training plans)
         </div>
       </div>
     </div>

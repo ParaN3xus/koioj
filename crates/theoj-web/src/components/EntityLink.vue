@@ -4,7 +4,7 @@ import { computed, onMounted, ref, useSlots } from "vue";
 import { RouterLink } from "vue-router";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
-import { ContestService, ProblemService, UserService } from "@/theoj-api";
+import { ContestService, ProblemService, TrainingPlanService, UserService } from "@/theoj-api";
 
 type EntityType =
   | "user"
@@ -13,7 +13,8 @@ type EntityType =
   | "submission"
   | "contest"
   | "contestProblem"
-  | "contestSubmission";
+  | "contestSubmission"
+  | "trainingPlan";
 type DisplayType = "button" | "link";
 
 interface Props {
@@ -82,6 +83,10 @@ const entityPath = computed(() => {
       params.submissionId = props.entityId;
       return buildPath(routeMap.contestSubmission.path, params);
 
+    case "trainingPlan":
+      params.id = props.entityId;
+      return buildPath(routeMap.trainingPlan.path, params);
+
     default:
       return "/";
   }
@@ -127,7 +132,20 @@ const fetchEntityName = async () => {
         break;
       }
 
-      case "solution":
+      case "trainingPlan": {
+        const response = await TrainingPlanService.getTrainingPlan(parseInt(props.entityId, 10));
+        entityName.value = response.name;
+        break;
+      }
+
+      case "solution": {
+        if (!props.problemId)
+          throw new Error("problemId is required for solution");
+        const response = await ProblemService.getSolution(props.problemId, props.entityId);
+        entityName.value = response.title;
+        break;
+      }
+
       case "submission":
       case "contestSubmission": {
         // These types don't have direct service methods, fallback to default
