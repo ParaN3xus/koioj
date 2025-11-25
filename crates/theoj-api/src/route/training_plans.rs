@@ -121,7 +121,7 @@ async fn create_training_plan(
 
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct TrainingPlanDetail {
+pub(crate) struct GetTrainingPlanResponse {
     id: i32,
     creator_id: i32,
     name: String,
@@ -158,14 +158,14 @@ pub(crate) struct ContestInfo {
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, body = TrainingPlanDetail),
+        (status = 200, body = GetTrainingPlanResponse),
     ),
     tag = "training_plan"
 )]
 async fn get_training_plan(
     state: State,
     Path(plan_id): Path<i32>,
-) -> Result<Json<TrainingPlanDetail>> {
+) -> Result<Json<GetTrainingPlanResponse>> {
     let plan = sqlx::query!(
         r#"
         SELECT id, creator_id, name, created_at, updated_at
@@ -236,7 +236,7 @@ async fn get_training_plan(
     })
     .collect();
 
-    Ok(Json(TrainingPlanDetail {
+    Ok(Json(GetTrainingPlanResponse {
         id: plan.id,
         creator_id: plan.creator_id,
         name: plan.name,
@@ -472,12 +472,6 @@ async fn put_training_plan(
     Ok(Json(PutTrainingPlanResponse { success: true }))
 }
 
-#[derive(Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DeleteTrainingPlanResponse {
-    success: bool,
-}
-
 #[utoipa::path(
     delete,
     path = "/api/training-plans/{plan_id}",
@@ -486,7 +480,9 @@ pub(crate) struct DeleteTrainingPlanResponse {
     ),
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, body = DeleteTrainingPlanResponse),
+        (status = 200, body = ()),
+        (status = 400, description = "Cannot delete training plan with started contests"),
+        (status = 404, description = "Training plan not found"),
     ),
     tag = "training_plan"
 )]
@@ -494,7 +490,7 @@ async fn delete_training_plan(
     state: State,
     claims: Extension<Claims>,
     Path(plan_id): Path<i32>,
-) -> Result<Json<DeleteTrainingPlanResponse>> {
+) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
@@ -516,6 +512,29 @@ async fn delete_training_plan(
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("training plan not found").status_code(StatusCode::NOT_FOUND))?;
 
+    // Check if all contests in the training plan haven't started yet
+    let started_contest_count = sqlx::query!(
+        r#"
+        SELECT COUNT(*) as count
+        FROM training_plan_contests tpc
+        JOIN contests c ON tpc.contest_id = c.id
+        WHERE tpc.plan_id = $1 AND c.begin_time <= NOW()
+        "#,
+        plan_id
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .count
+    .unwrap_or(0);
+
+    if started_contest_count > 0 {
+        return Err(Error::msg(
+            "cannot delete training plan with contests that have already started",
+        )
+        .status_code(StatusCode::BAD_REQUEST));
+    }
+
     sqlx::query!(
         r#"
         DELETE FROM training_plans
@@ -529,7 +548,7 @@ async fn delete_training_plan(
 
     // state.delete_training_plan_content(plan_id).await?;
 
-    Ok(Json(DeleteTrainingPlanResponse { success: true }))
+    Ok(())
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -541,7 +560,6 @@ pub(crate) struct SetParticipantsRequest {
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SetParticipantsResponse {
-    success: bool,
     added: i32,
     removed: i32,
 }
@@ -730,11 +748,7 @@ async fn set_participants(
         removed = to_remove.len() as i32;
     }
 
-    Ok(Json(SetParticipantsResponse {
-        success: true,
-        added,
-        removed,
-    }))
+    Ok(Json(SetParticipantsResponse { added, removed }))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -746,7 +760,6 @@ pub(crate) struct SetContestsRequest {
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SetContestsResponse {
-    success: bool,
     added: i32,
     removed: i32,
 }
@@ -934,9 +947,5 @@ async fn set_contests(
         removed = to_remove.len() as i32;
     }
 
-    Ok(Json(SetContestsResponse {
-        success: true,
-        added,
-        removed,
-    }))
+    Ok(Json(SetContestsResponse { added, removed }))
 }
