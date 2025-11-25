@@ -8,6 +8,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 use theoj_common::bail;
 use utoipa::ToSchema;
 
@@ -255,24 +256,20 @@ pub(crate) struct TrainingPlanListItem {
     name: String,
     participant_count: i64,
     contest_count: i64,
-    created_at: String,
-    updated_at: String,
 }
-
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ListTrainingPlansQuery {
     page: Option<i64>,
     page_size: Option<i64>,
+    end_after: Option<DateTime<Utc>>,
 }
-
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct GetTrainingPlansResponse {
+pub(crate) struct ListTrainingPlansResponse {
     plans: Vec<TrainingPlanListItem>,
     total: i64,
 }
-
 #[utoipa::path(
     get,
     path = "/api/training-plans",
@@ -280,62 +277,108 @@ pub(crate) struct GetTrainingPlansResponse {
     params(
         ("page" = Option<i64>, Query),
         ("pageSize" = Option<i64>, Query),
+        ("endAfter" = Option<DateTime<Utc>>, Query),
     ),
     responses(
-        (status = 200, body = GetTrainingPlansResponse),
+        (status = 200, body = ListTrainingPlansResponse),
     ),
     tag = "training_plan"
 )]
 async fn list_training_plans(
     state: State,
     Query(q): Query<ListTrainingPlansQuery>,
-) -> Result<Json<GetTrainingPlansResponse>> {
+) -> Result<Json<ListTrainingPlansResponse>> {
     let page = q.page.unwrap_or(1).max(1);
     let page_size = q.page_size.unwrap_or(20).clamp(1, 100);
     let offset = (page - 1) * page_size;
 
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM training_plans WHERE id != 0")
-        .fetch_one(&state.pool)
-        .await
-        .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+    let (count_query, list_query, bind_end_after) = if let Some(end_after) = q.end_after {
+        (
+            "SELECT COUNT(*) FROM training_plans tp 
+             WHERE tp.id != 0 AND EXISTS (
+                 SELECT 1 FROM training_plan_contests tpc2
+                 JOIN contests c ON tpc2.contest_id = c.id
+                 WHERE tpc2.plan_id = tp.id AND c.end_time > $1
+             )",
+            r#"
+            SELECT 
+                tp.id, tp.creator_id, tp.name,
+                COUNT(DISTINCT tpp.user_id) as participant_count,
+                COUNT(DISTINCT tpc.contest_id) as contest_count
+            FROM training_plans tp
+            LEFT JOIN training_plan_participants tpp ON tp.id = tpp.plan_id
+            LEFT JOIN training_plan_contests tpc ON tp.id = tpc.plan_id
+            WHERE tp.id != 0 AND EXISTS (
+                SELECT 1 FROM training_plan_contests tpc2
+                JOIN contests c ON tpc2.contest_id = c.id
+                WHERE tpc2.plan_id = tp.id AND c.end_time > $1
+            )
+            GROUP BY tp.id, tp.creator_id, tp.name
+            ORDER BY tp.created_at DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            Some(end_after),
+        )
+    } else {
+        (
+            "SELECT COUNT(*) FROM training_plans tp WHERE tp.id != 0",
+            r#"
+            SELECT 
+                tp.id, tp.creator_id, tp.name, 
+                COUNT(DISTINCT tpp.user_id) as participant_count,
+                COUNT(DISTINCT tpc.contest_id) as contest_count
+            FROM training_plans tp
+            LEFT JOIN training_plan_participants tpp ON tp.id = tpp.plan_id
+            LEFT JOIN training_plan_contests tpc ON tp.id = tpc.plan_id
+            WHERE tp.id != 0
+            GROUP BY tp.id, tp.creator_id, tp.name
+            ORDER BY tp.created_at DESC
+            LIMIT $1 OFFSET $2
+            "#,
+            None,
+        )
+    };
 
-    let plans = sqlx::query!(
-        r#"
-        SELECT 
-            tp.id,
-            tp.creator_id,
-            tp.name,
-            tp.created_at,
-            tp.updated_at,
-            COUNT(DISTINCT tpp.user_id) as "participant_count!",
-            COUNT(DISTINCT tpc.contest_id) as "contest_count!"
-        FROM training_plans tp
-        LEFT JOIN training_plan_participants tpp ON tp.id = tpp.plan_id
-        LEFT JOIN training_plan_contests tpc ON tp.id = tpc.plan_id
-        WHERE tp.id != 0
-        GROUP BY tp.id, tp.creator_id, tp.name, tp.created_at, tp.updated_at
-        ORDER BY tp.created_at DESC
-        LIMIT $1 OFFSET $2
-        "#,
-        page_size,
-        offset
-    )
-    .fetch_all(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .into_iter()
-    .map(|row| TrainingPlanListItem {
-        id: row.id,
-        creator_id: row.creator_id,
-        name: row.name,
-        participant_count: row.participant_count,
-        contest_count: row.contest_count,
-        created_at: row.created_at.to_rfc3339(),
-        updated_at: row.updated_at.to_rfc3339(),
-    })
-    .collect();
+    // Count query
+    let total: i64 = if let Some(end_after) = bind_end_after {
+        sqlx::query_scalar(count_query)
+            .bind(end_after)
+            .fetch_one(&state.pool)
+            .await?
+    } else {
+        sqlx::query_scalar(count_query)
+            .fetch_one(&state.pool)
+            .await?
+    };
 
-    Ok(Json(GetTrainingPlansResponse { plans, total }))
+    // List query
+    let rows = if let Some(end_after) = bind_end_after {
+        sqlx::query(list_query)
+            .bind(end_after)
+            .bind(page_size)
+            .bind(offset)
+            .fetch_all(&state.pool)
+            .await?
+    } else {
+        sqlx::query(list_query)
+            .bind(page_size)
+            .bind(offset)
+            .fetch_all(&state.pool)
+            .await?
+    };
+
+    let plans = rows
+        .into_iter()
+        .map(|row| TrainingPlanListItem {
+            id: row.get("id"),
+            creator_id: row.get("creator_id"),
+            name: row.get("name"),
+            participant_count: row.get("participant_count"),
+            contest_count: row.get("contest_count"),
+        })
+        .collect();
+
+    Ok(Json(ListTrainingPlansResponse { plans, total }))
 }
 
 #[derive(Deserialize, ToSchema)]
