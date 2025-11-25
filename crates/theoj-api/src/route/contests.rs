@@ -770,7 +770,6 @@ pub(crate) struct ProblemResult {
 struct ContestInfo {
     id: i32,
     begin_time: DateTime<Utc>,
-    end_time: DateTime<Utc>,
 }
 
 async fn calculate_contest_ranking(
@@ -793,14 +792,11 @@ async fn calculate_contest_ranking(
                u.username
         FROM submissions s
         JOIN users u ON s.user_id = u.id
-        WHERE s.problem_id = ANY($1)
-          AND s.created_at >= $2
-          AND s.created_at <= $3
+        WHERE s.problem_id = ANY($1) AND s.contest_id = $2
         ORDER BY s.user_id, s.problem_id, s.created_at
         "#,
         &problem_ids,
-        contest.begin_time,
-        contest.end_time
+        &contest.id
     )
     .fetch_all(pool)
     .await
@@ -924,7 +920,6 @@ async fn get_contest_ranking(
     let contest_info = ContestInfo {
         id: contest.id,
         begin_time: contest.begin_time,
-        end_time: contest.end_time,
     };
 
     let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
@@ -1013,7 +1008,6 @@ async fn get_overall_ranking(
         let contest_info = ContestInfo {
             id: contest.id,
             begin_time: contest.begin_time,
-            end_time: contest.end_time,
         };
 
         let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
