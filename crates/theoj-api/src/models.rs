@@ -34,3 +34,9 @@ pub struct SubmissionCode {
 pub struct ContestContent {
     pub description: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingPlanContent {
+    pub description: String,
+}

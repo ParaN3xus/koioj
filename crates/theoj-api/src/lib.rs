@@ -34,7 +34,10 @@ use uuid::Uuid;
 
 use crate::{
     auth::{generate_strong_password, hash_password},
-    models::{ContestContent, ProblemContent, SolutionContent, SubmissionCode, TestCaseData},
+    models::{
+        ContestContent, ProblemContent, SolutionContent, SubmissionCode, TestCaseData,
+        TrainingPlanContent,
+    },
     route::judge::JudgeConnection,
 };
 
@@ -112,6 +115,85 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn setup_phantom_training_plan(&self) -> Result<()> {
+        let existing_phantom: Option<i32> = sqlx::query_scalar!(
+            r#"
+        SELECT id FROM training_plans WHERE id = 0
+        "#
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("check phantom training plan failed: {}", e)))?;
+
+        if existing_phantom.is_some() {
+            tracing::info!("phantom training plan already exists, skipping creation");
+            return Ok(());
+        }
+
+        tracing::warn!("phantom training plan doesn't exist, creating");
+
+        // get admin
+        let admin_id: i32 = sqlx::query_scalar!(
+            r#"
+        SELECT id FROM users WHERE username = 'admin'
+        "#
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("admin account not found: {}", e)))?;
+
+        // create
+        sqlx::query!(
+            r#"
+        INSERT INTO training_plans (id, name, creator_id)
+        VALUES (0, '__DIRECT_JOIN__', $1)
+        "#,
+            admin_id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("create phantom training plan failed: {}", e)))?;
+
+        self.write_training_plan_content(
+            0,
+            &TrainingPlanContent {
+                description: "System phantom training plan for direct contest participation"
+                    .to_string(),
+            },
+        )
+        .await
+        .map_err(|e| Error::msg(format!("create phantom training plan failed: {:?}", e)))?;
+
+        // protect
+        sqlx::query!(
+            r#"
+        CREATE OR REPLACE RULE protect_phantom_plan AS 
+        ON DELETE TO training_plans 
+        WHERE OLD.id = 0 
+        DO INSTEAD NOTHING
+        "#
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("create delete protection rule failed: {}", e)))?;
+
+        sqlx::query!(
+            r#"
+        CREATE OR REPLACE RULE protect_phantom_plan_update AS 
+        ON UPDATE TO training_plans 
+        WHERE OLD.id = 0 
+        DO INSTEAD NOTHING
+        "#
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| Error::msg(format!("create update protection rule failed: {}", e)))?;
+
+        tracing::info!("phantom training plan created successfully with id = 0");
+
+        Ok(())
+    }
+
     fn get_data_path(&self, subdir: &str, id: i32) -> PathBuf {
         PathBuf::from(&self.config.data_dir)
             .join(subdir)
@@ -161,6 +243,10 @@ impl AppState {
 
     fn get_contest_path(&self, contest_id: i32) -> PathBuf {
         self.get_data_path("contests", contest_id)
+    }
+
+    fn get_training_plan_path(&self, training_plan_id: i32) -> PathBuf {
+        self.get_data_path("training_plans", training_plan_id)
     }
 
     pub async fn write_problem_content(
@@ -232,6 +318,23 @@ impl AppState {
         let path = self.get_contest_path(contest_id);
         self.read_json_data(path).await
     }
+
+    pub async fn write_training_plan_content(
+        &self,
+        training_plan_id: i32,
+        content: &TrainingPlanContent,
+    ) -> Result<()> {
+        let path = self.get_training_plan_path(training_plan_id);
+        self.write_json_data(path, content).await
+    }
+
+    pub async fn read_training_plan_content(
+        &self,
+        training_plan_id: i32,
+    ) -> Result<TrainingPlanContent> {
+        let path = self.get_training_plan_path(training_plan_id);
+        self.read_json_data(path).await
+    }
 }
 
 pub async fn start_api(config: Config) -> Result<()> {
@@ -239,6 +342,7 @@ pub async fn start_api(config: Config) -> Result<()> {
     let state = Arc::new(AppState::new(Arc::clone(&config)).await?);
 
     state.create_admin_account().await?;
+    state.setup_phantom_training_plan().await?;
 
     let app = route::routes(state.clone())
         .layer(

@@ -36,6 +36,9 @@ pub enum Action {
     PutContest,
     DeleteContest,
     ViewOverallRanking,
+    CreateTrainingPlan,
+    PutTrainingPlan,
+    DeleteTrainingPlan,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,6 +49,7 @@ pub enum Resource {
     Solution(i32),
     Submission(i32),
     Contest(i32),
+    TrainingPlan(i32),
 }
 
 impl Resource {
@@ -72,6 +76,14 @@ impl Resource {
             Resource::Contest(id) => {
                 let result =
                     sqlx::query_scalar!("SELECT creator_id FROM contests WHERE id = $1", id)
+                        .fetch_one(pool)
+                        .await?;
+
+                Ok(result)
+            }
+            Resource::TrainingPlan(id) => {
+                let result =
+                    sqlx::query_scalar!("SELECT creator_id FROM training_plans WHERE id = $1", id)
                         .fetch_one(pool)
                         .await?;
 
@@ -115,6 +127,8 @@ pub async fn check_permission(
     let user_role = role_of_claims(pool, claims).await?;
 
     let has_permission = match (user_role, action, resource) {
+        (_, _, Resource::TrainingPlan(0)) => false,
+
         (UserRole::Admin, _, _) => true,
         (_, Action::GetRole, _) => true,
         (_, Action::GetProfile, _) => true,
@@ -147,6 +161,13 @@ pub async fn check_permission(
             claims.sub == submission.owner_id(pool).await?
         }
 
+        (UserRole::Teacher, Action::CreateTrainingPlan, _) => true,
+        (UserRole::Teacher, Action::PutTrainingPlan, training_plan) => {
+            claims.sub == training_plan.owner_id(pool).await?
+        }
+        (UserRole::Teacher, Action::DeleteTrainingPlan, training_plan) => {
+            claims.sub == training_plan.owner_id(pool).await?
+        }
         _ => false,
     };
 

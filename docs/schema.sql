@@ -67,8 +67,9 @@ CREATE TABLE contests (
 CREATE TABLE contest_participants (
     contest_id INTEGER NOT NULL REFERENCES contests(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    training_plan_id INTEGER NOT NULL DEFAULT 0 REFERENCES training_plans(id) ON DELETE CASCADE;
     joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (contest_id, user_id)
+    PRIMARY KEY (contest_id, user_id, training_plan_id)
 );
 
 CREATE TABLE submissions (

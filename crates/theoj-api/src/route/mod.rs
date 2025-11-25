@@ -2,6 +2,7 @@ mod contests;
 pub mod judge;
 mod misc;
 mod problems;
+mod training_plans;
 mod users;
 
 #[cfg(feature = "embed-frontend")]
@@ -24,10 +25,12 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
             .merge(users::top_routes())
             .merge(problems::top_routes())
             .merge(contests::top_routes())
+            .merge(training_plans::top_routes())
             .nest("/users", users::routes(state.clone()))
             .nest("/problems", problems::routes(state.clone()))
             .nest("/judge", judge::routes(state.clone()))
-            .nest("/contests", contests::routes(state.clone())),
+            .nest("/contests", contests::routes(state.clone()))
+            .nest("/training-plans", training_plans::routes(state.clone())),
     );
     #[cfg(debug_assertions)]
     {
@@ -79,6 +82,13 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         contests::join_contest,
         contests::get_contest_ranking,
         contests::get_overall_ranking,
+        training_plans::get_training_plan,
+        training_plans::list_training_plans,
+        training_plans::create_training_plan,
+        training_plans::put_training_plan,
+        training_plans::delete_training_plan,
+        training_plans::set_participants,
+        training_plans::set_contests,
     ),
     modifiers(&JWTAuthAddon),
     tags(
@@ -86,6 +96,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         (name = "user"),
         (name = "problem"),
         (name = "contest"),
+        (name = "training_plans"),
     ),
     components(
         schemas(ErrorResponse),
