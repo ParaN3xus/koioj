@@ -986,14 +986,20 @@ async fn submit(
     if let Some(cid) = contest_id_int {
         let _contest_exists = sqlx::query!(
             r#"
-            SELECT id FROM contests WHERE id = $1 AND status = 'active'
-            "#,
+    SELECT id FROM contests 
+    WHERE id = $1 
+      AND status = 'active'
+      AND begin_time <= NOW()
+      AND end_time >= NOW()
+    "#,
             cid
         )
         .fetch_optional(&state.pool)
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?
-        .ok_or_else(|| Error::msg("contest not found").status_code(StatusCode::NOT_FOUND))?;
+        .ok_or_else(|| {
+            Error::msg("contest not in valid time range").status_code(StatusCode::FORBIDDEN)
+        })?;
 
         // verify that this guy participates in this contest
         let participant = sqlx::query!(
