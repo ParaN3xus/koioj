@@ -16,7 +16,13 @@ fn main() {
     println!("cargo:rerun-if-changed=../../tsconfig.node.json");
     println!("cargo:rerun-if-changed=../../yarn.lock");
 
-    let status = Command::new("yarn")
+    let yarn_command = if cfg!(target_os = "windows") {
+        "yarn.cmd"
+    } else {
+        "yarn"
+    };
+
+    let status = Command::new(yarn_command)
         .args(&["build"])
         .status()
         .expect("Failed to execute yarn build");

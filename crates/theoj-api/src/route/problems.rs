@@ -1168,7 +1168,7 @@ async fn list_submissions(
         result: SubmissionResult,
         time_consumption: Option<i32>,
         mem_consumption: Option<i32>,
-        created_at: DateTime<Utc>,
+        created_at: Option<DateTime<Utc>>,
         username: String,
         problem_name: String,
     }
@@ -1251,7 +1251,10 @@ async fn list_submissions(
             result: row.result,
             time_consumption: row.time_consumption,
             mem_consumption: row.mem_consumption,
-            created_at: row.created_at.to_rfc3339(),
+            created_at: row
+                .created_at
+                .expect("created_at should not be null")
+                .to_rfc3339(),
         })
         .collect();
 
