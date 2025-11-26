@@ -10,7 +10,7 @@ use crate::{
     AppState, Result, State,
     auth::{Claims, generate_jwt_token, hash_password, jwt_auth_middleware, verify_password},
     error::Error,
-    perm::{Action, Resource, UserRole, check_permission},
+    perm::{Action, Resource, UserRole, check_permission, role_of_claims},
 };
 
 pub fn top_routes() -> Router<Arc<AppState>> {
@@ -341,18 +341,7 @@ async fn get_profile(
         .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let requester_id: i32 = claims.sub;
-    let requester_role = sqlx::query!(
-        r#"
-        SELECT user_role as "user_role: UserRole" FROM users
-        WHERE id = $1 AND status = 'active'
-        "#,
-        requester_id
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .ok_or_else(|| Error::msg("requester not found").status_code(StatusCode::UNAUTHORIZED))?
-    .user_role;
+    let requester_role = role_of_claims(&state.pool, &claims).await?;
 
     let user = sqlx::query!(
         r#"
