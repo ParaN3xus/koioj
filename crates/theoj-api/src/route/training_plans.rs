@@ -834,6 +834,32 @@ async fn set_contests(
         .copied()
         .collect();
 
+    // check
+    let mut contests_to_check = to_add.clone();
+    contests_to_check.extend(to_remove.iter().copied());
+    if !contests_to_check.is_empty() {
+        let started_contests = sqlx::query!(
+            r#"
+        SELECT id
+        FROM contests
+        WHERE id = ANY($1) AND begin_time <= $2
+        "#,
+            &contests_to_check,
+            Utc::now()
+        )
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+        if !started_contests.is_empty() {
+            let started_ids: Vec<i32> = started_contests.iter().map(|r| r.id).collect();
+            return Err(Error::msg(format!(
+                "cannot modify contests that have already started: {:?}",
+                started_ids
+            ))
+            .status_code(StatusCode::BAD_REQUEST));
+        }
+    }
+
     let mut added = 0;
     let mut removed = 0;
 
