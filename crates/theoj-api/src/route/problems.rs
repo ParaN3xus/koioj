@@ -797,7 +797,7 @@ async fn list_solutions(
         title: row.title,
         author_id: row.author.to_string(),
         author_name: row.username,
-        created_at: row.created_at.expect("created_at should not be null").to_rfc3339(),
+        created_at: row.created_at.to_rfc3339(),
     })
     .collect();
 
@@ -863,7 +863,7 @@ async fn get_solution(
         content: solution_content.content,
         author_id: solution.author.to_string(),
         author_name: solution.username,
-        created_at: solution.created_at.expect("created_at should not be null").to_rfc3339(),
+        created_at: solution.created_at.to_rfc3339(),
     }))
 }
 
@@ -1251,7 +1251,10 @@ async fn list_submissions(
             result: row.result,
             time_consumption: row.time_consumption,
             mem_consumption: row.mem_consumption,
-            created_at: row.created_at.expect("created_at should not be null").to_rfc3339(),
+            created_at: row
+                .created_at
+                .expect("created_at should not be null")
+                .to_rfc3339(),
         })
         .collect();
 
@@ -1371,7 +1374,7 @@ async fn get_submission(
         time_consumption: submission.time_consumption,
         mem_consumption: submission.mem_consumption,
         test_case_results,
-        created_at: submission.created_at.expect("created_at should not be null").to_rfc3339(),
+        created_at: submission.created_at.to_rfc3339(),
     }))
 }
 
