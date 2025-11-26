@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use theoj_common::bail;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::{
     AppState, Result, State,
@@ -126,8 +126,6 @@ pub(crate) struct GetTrainingPlanResponse {
     creator_id: i32,
     name: String,
     description: String,
-    created_at: String,
-    updated_at: String,
     participants: Vec<ParticipantInfo>,
     contests: Vec<ContestInfo>,
 }
@@ -147,7 +145,6 @@ pub(crate) struct ContestInfo {
     name: String,
     begin_time: String,
     end_time: String,
-    added_at: String,
 }
 
 #[utoipa::path(
@@ -168,7 +165,7 @@ async fn get_training_plan(
 ) -> Result<Json<GetTrainingPlanResponse>> {
     let plan = sqlx::query!(
         r#"
-        SELECT id, creator_id, name, created_at, updated_at
+        SELECT id, creator_id, name
         FROM training_plans
         WHERE id = $1
         "#,
@@ -214,8 +211,7 @@ async fn get_training_plan(
             tpc.contest_id,
             c.name,
             c.begin_time,
-            c.end_time,
-            tpc.created_at as added_at
+            c.end_time
         FROM training_plan_contests tpc
         JOIN contests c ON tpc.contest_id = c.id
         WHERE tpc.plan_id = $1
@@ -232,7 +228,6 @@ async fn get_training_plan(
         name: row.name,
         begin_time: row.begin_time.to_rfc3339(),
         end_time: row.end_time.to_rfc3339(),
-        added_at: row.added_at.to_rfc3339(),
     })
     .collect();
 
@@ -241,8 +236,6 @@ async fn get_training_plan(
         creator_id: plan.creator_id,
         name: plan.name,
         description: content.description,
-        created_at: plan.created_at.to_rfc3339(),
-        updated_at: plan.updated_at.to_rfc3339(),
         participants,
         contests,
     }))
@@ -257,7 +250,7 @@ pub(crate) struct TrainingPlanListItem {
     participant_count: i64,
     contest_count: i64,
 }
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ListTrainingPlansQuery {
     page: Option<i64>,
@@ -274,11 +267,7 @@ pub(crate) struct ListTrainingPlansResponse {
     get,
     path = "/api/training-plans",
     security(("bearer_auth" = [])),
-    params(
-        ("page" = Option<i64>, Query),
-        ("pageSize" = Option<i64>, Query),
-        ("endAfter" = Option<DateTime<Utc>>, Query),
-    ),
+    params(ListTrainingPlansQuery),
     responses(
         (status = 200, body = ListTrainingPlansResponse),
     ),
@@ -388,12 +377,6 @@ pub(crate) struct PutTrainingPlanRequest {
     description: Option<String>,
 }
 
-#[derive(Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct PutTrainingPlanResponse {
-    success: bool,
-}
-
 #[utoipa::path(
     put,
     path = "/api/training-plans/{plan_id}",
@@ -403,7 +386,7 @@ pub(crate) struct PutTrainingPlanResponse {
     request_body = PutTrainingPlanRequest,
     security(("bearer_auth" = [])),
     responses(
-        (status = 200, body = PutTrainingPlanResponse),
+        (status = 200, body = ()),
     ),
     tag = "training_plan"
 )]
@@ -412,7 +395,7 @@ async fn put_training_plan(
     claims: Extension<Claims>,
     Path(plan_id): Path<i32>,
     Json(req): Json<PutTrainingPlanRequest>,
-) -> Result<Json<PutTrainingPlanResponse>> {
+) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
@@ -469,7 +452,7 @@ async fn put_training_plan(
         .map_err(|e| Error::msg(format!("database error: {}", e)))?;
     }
 
-    Ok(Json(PutTrainingPlanResponse { success: true }))
+    Ok(())
 }
 
 #[utoipa::path(

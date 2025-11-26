@@ -379,7 +379,7 @@ async fn put_problem(
         if !name.is_empty() {
             sqlx::query!(
                 r#"
-                UPDATE problems SET name = $1 WHERE id = $2
+                UPDATE problems SET name = $1, updated_at = NOW() WHERE id = $2
                 "#,
                 name,
                 problem_id_int
@@ -420,7 +420,7 @@ async fn put_problem(
         }
         sqlx::query!(
             r#"
-            UPDATE problems SET time_limit = $1 WHERE id = $2
+            UPDATE problems SET time_limit = $1, updated_at = NOW() WHERE id = $2
             "#,
             time_limit,
             problem_id_int
@@ -436,7 +436,7 @@ async fn put_problem(
         }
         sqlx::query!(
             r#"
-            UPDATE problems SET mem_limit = $1 WHERE id = $2
+            UPDATE problems SET mem_limit = $1, updated_at = NOW() WHERE id = $2
             "#,
             mem_limit,
             problem_id_int
@@ -449,7 +449,7 @@ async fn put_problem(
     if let Some(status) = p.status {
         sqlx::query!(
             r#"
-            UPDATE problems SET status = $1 WHERE id = $2
+            UPDATE problems SET status = $1, updated_at = NOW() WHERE id = $2
             "#,
             status as ProblemStatus,
             problem_id_int
@@ -986,12 +986,12 @@ async fn submit(
     if let Some(cid) = contest_id_int {
         let _contest_exists = sqlx::query!(
             r#"
-    SELECT id FROM contests 
-    WHERE id = $1 
-      AND status = 'active'
-      AND begin_time <= NOW()
-      AND end_time >= NOW()
-    "#,
+            SELECT id FROM contests 
+            WHERE id = $1 
+            AND status = 'active'
+            AND begin_time <= NOW()
+            AND end_time >= NOW()
+            "#,
             cid
         )
         .fetch_optional(&state.pool)
@@ -1082,7 +1082,7 @@ async fn submit(
 
             if let Err(update_err) = sqlx::query!(
                 r#"
-                UPDATE submissions SET result = 'unknown_error' WHERE id = $1
+                UPDATE submissions SET result = 'unknown_error', updated_at = NOW() WHERE id = $1
                 "#,
                 submission_id
             )
@@ -1185,17 +1185,17 @@ async fn list_submissions(
             let submissions = sqlx::query_as!(
                 SubmissionWithDetails,
                 r#"
-            SELECT s.id, s.user_id, s.problem_id, s.lang, 
-                   s.result as "result: SubmissionResult",
-                   s.time_consumption, s.mem_consumption, s.created_at,
-                   u.username, p.name as problem_name
-            FROM submissions s
-            JOIN users u ON s.user_id = u.id
-            JOIN problems p ON s.problem_id = p.id
-            WHERE s.problem_id = $1
-            ORDER BY s.created_at DESC
-            LIMIT $2 OFFSET $3
-            "#,
+                SELECT s.id, s.user_id, s.problem_id, s.lang, 
+                    s.result as "result: SubmissionResult",
+                    s.time_consumption, s.mem_consumption, s.created_at,
+                    u.username, p.name as problem_name
+                FROM submissions s
+                JOIN users u ON s.user_id = u.id
+                JOIN problems p ON s.problem_id = p.id
+                WHERE s.problem_id = $1
+                ORDER BY s.created_at DESC
+                LIMIT $2 OFFSET $3
+                "#,
                 problem_id_int,
                 page_size,
                 offset
@@ -1217,17 +1217,17 @@ async fn list_submissions(
             let submissions = sqlx::query_as!(
                 SubmissionWithDetails,
                 r#"
-            SELECT s.id, s.user_id, s.problem_id, s.lang, 
-                   s.result as "result: SubmissionResult",
-                   s.time_consumption, s.mem_consumption, s.created_at,
-                   u.username, p.name as problem_name
-            FROM submissions s
-            JOIN users u ON s.user_id = u.id
-            JOIN problems p ON s.problem_id = p.id
-            WHERE s.problem_id = $1 AND s.user_id = $2
-            ORDER BY s.created_at DESC
-            LIMIT $3 OFFSET $4
-            "#,
+                SELECT s.id, s.user_id, s.problem_id, s.lang, 
+                    s.result as "result: SubmissionResult",
+                    s.time_consumption, s.mem_consumption, s.created_at,
+                    u.username, p.name as problem_name
+                FROM submissions s
+                JOIN users u ON s.user_id = u.id
+                JOIN problems p ON s.problem_id = p.id
+                WHERE s.problem_id = $1 AND s.user_id = $2
+                ORDER BY s.created_at DESC
+                LIMIT $3 OFFSET $4
+                "#,
                 problem_id_int,
                 claims.sub,
                 page_size,

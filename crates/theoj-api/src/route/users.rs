@@ -235,7 +235,7 @@ async fn put_role(
     let _updated = sqlx::query!(
         r#"
         UPDATE users
-        SET user_role = $1
+        SET user_role = $1, updated_at = NOW()
         WHERE id = $2 AND status = 'active'
         RETURNING id
         "#,
@@ -434,7 +434,7 @@ async fn put_profile(
     let _updated = sqlx::query!(
         r#"
         UPDATE users
-        SET username = $1, email = $2
+        SET username = $1, email = $2, updated_at = NOW()
         WHERE id = $3 AND status = 'active'
         RETURNING id
         "#,
@@ -497,7 +497,8 @@ async fn change_password(
     verify_password(p.old_password, current_hash)?;
 
     let rows_affected = sqlx::query!(
-        r#"UPDATE users SET password = $1 WHERE id = $2 AND status = 'active'"#,
+        r#"UPDATE users SET password = $1, updated_at = NOW()
+           WHERE id = $2 AND status = 'active'"#,
         new_password_hash,
         claims.sub
     )
@@ -549,7 +550,7 @@ async fn delete_user(
     let _updated = sqlx::query!(
         r#"
         UPDATE users
-        SET status = $1
+        SET status = $1, updated_at = NOW()
         WHERE id = $2 AND status = 'active'
         RETURNING id
         "#,

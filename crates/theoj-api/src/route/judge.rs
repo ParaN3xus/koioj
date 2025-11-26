@@ -255,7 +255,7 @@ async fn handle_judge_message(
             sqlx::query!(
                 r#"
                 UPDATE submissions 
-                SET result = $1, time_consumption = $2, mem_consumption = $3
+                SET result = $1, time_consumption = $2, mem_consumption = $3, updated_at = NOW()
                 WHERE id = $4
                 "#,
                 result.result as SubmissionResult,
@@ -317,7 +317,7 @@ async fn handle_judge_message(
             sqlx::query!(
                 r#"
                 UPDATE submissions 
-                SET result = $1, time_consumption = $2, mem_consumption = $3
+                SET result = $1, time_consumption = $2, mem_consumption = $3, updated_at = NOW()
                 WHERE id = $4
                 "#,
                 SubmissionResult::UnknownError as SubmissionResult,

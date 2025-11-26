@@ -541,7 +541,7 @@ async fn put_contest(
         sqlx::query!(
             r#"
             UPDATE contests
-            SET name = $1, begin_time = $2, end_time = $3, password = $4, type = $5, status = $6
+            SET name = $1, begin_time = $2, end_time = $3, password = $4, type = $5, status = $6, updated_at = NOW()
             WHERE id = $7
             "#,
             name,
