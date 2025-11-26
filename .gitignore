@@ -32,3 +32,11 @@ openapi.json
 /.env
 /config.yml
 /judge_config.yml
+
+# PM config
+/.cargo
+/.npmrc
+/.yarnrc
+
+# cache
+.sqlx
