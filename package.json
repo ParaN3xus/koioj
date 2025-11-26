@@ -14,7 +14,7 @@
   "dependencies": {
     "@iconify-json/heroicons": "^1.2.3",
     "@tailwindcss/typography": "^0.5.19",
-    "@traptitech/markdown-it-katex": "^3.6.0",
+    "@vscode/markdown-it-katex": "^1.1.2",
     "jszip": "^3.10.1",
     "katex": "^0.16.25",
     "markdown-it": "^14.1.0",

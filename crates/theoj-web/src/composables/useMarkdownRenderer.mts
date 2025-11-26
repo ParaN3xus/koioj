@@ -1,4 +1,4 @@
-import markdownItKatex from "@traptitech/markdown-it-katex";
+import markdownItKatex from "@vscode/markdown-it-katex";
 import MarkdownIt from "markdown-it";
 import "katex/dist/katex.min.css";
 
