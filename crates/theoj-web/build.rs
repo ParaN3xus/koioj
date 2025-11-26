@@ -16,26 +16,19 @@ fn main() {
     println!("cargo:rerun-if-changed=../../tsconfig.node.json");
     println!("cargo:rerun-if-changed=../../yarn.lock");
 
-    // let status = Command::new("yarn")
-    //     .args(&["build"])
-    //     .status()
-    //     .expect("Failed to execute yarn build");
-
-    // On Windows, npm is a .cmd file, so we need to use cmd /c
-    let npm_command = if cfg!(target_os = "windows") {
-        "npm.cmd"
+    let yarn_command = if cfg!(target_os = "windows") {
+        "yarn.cmd"
     } else {
-        "npm"
+        "yarn"
     };
 
-    let status = Command::new(npm_command)
-        .args(&["run", "build"])
+    let status = Command::new(yarn_command)
+        .args(&["build"])
         .status()
-        .expect("Failed to execute npm run build");
-
+        .expect("Failed to execute yarn build");
 
     if !status.success() {
-        panic!("npm run build failed");
+        panic!("yarn build failed");
     }
 
     let dist_dir = Path::new("dist");
