@@ -1,6 +1,6 @@
 pub(crate) mod ranking_cache;
 
-pub use ranking_cache::{ContestRankingItem, ProblemResult};
+pub use ranking_cache::ContestRankingItem;
 
 use axum::{
     Extension, Json, Router,
