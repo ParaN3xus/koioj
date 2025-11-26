@@ -241,6 +241,17 @@ async fn handle_judge_message(
                 result.memory_consumption
             );
 
+            let submission = sqlx::query!(
+                r#"
+                SELECT user_id, problem_id, contest_id, created_at
+                FROM submissions
+                WHERE id = $1
+                "#,
+                result.submission_id
+            )
+            .fetch_one(&state.pool)
+            .await?;
+
             sqlx::query!(
                 r#"
                 UPDATE submissions 
@@ -271,9 +282,37 @@ async fn handle_judge_message(
                 .execute(&state.pool)
                 .await?;
             }
+
+            if let Some(contest_id) = submission.contest_id {
+                if let Err(e) = crate::route::contests::ranking_cache::update_ranking_on_submission(
+                    &state,
+                    contest_id,
+                    submission.user_id,
+                    submission.problem_id,
+                    result.result,
+                    submission.created_at,
+                )
+                .await
+                {
+                    tracing::error!("Failed to update ranking cache: {}", e);
+                    // Don't fail the whole operation if cache update fails
+                }
+            }
         }
         JudgeToApiMessage::Error(id, msg) => {
             tracing::error!("Submission {} judge error: {}", id, msg);
+
+            // Get submission info to check if it's in a contest
+            let submission = sqlx::query!(
+                r#"
+                SELECT user_id, problem_id, contest_id, created_at
+                FROM submissions
+                WHERE id = $1
+                "#,
+                id
+            )
+            .fetch_one(&state.pool)
+            .await?;
 
             sqlx::query!(
                 r#"
@@ -288,6 +327,24 @@ async fn handle_judge_message(
             )
             .execute(&state.pool)
             .await?;
+
+            // Update ranking cache if this is a contest submission
+            // UnknownError is treated as a failed attempt
+            if let Some(contest_id) = submission.contest_id {
+                if let Err(e) = crate::route::contests::ranking_cache::update_ranking_on_submission(
+                    &state,
+                    contest_id,
+                    submission.user_id,
+                    submission.problem_id,
+                    SubmissionResult::UnknownError,
+                    submission.created_at,
+                )
+                .await
+                {
+                    tracing::error!("Failed to update ranking cache: {}", e);
+                    // Don't fail the whole operation if cache update fails
+                }
+            }
         }
     }
 

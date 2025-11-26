@@ -77,7 +77,7 @@ pub struct JudgeProgress {
     pub total_tests: u32,
 }
 
-#[derive(PartialEq, Clone, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
+#[derive(PartialEq, Clone, Copy, Debug, sqlx::Type, Serialize, Deserialize, ToSchema)]
 #[sqlx(type_name = "submission_result_enum")]
 #[sqlx(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]

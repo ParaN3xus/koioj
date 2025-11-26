@@ -1,3 +1,7 @@
+pub(crate) mod ranking_cache;
+
+pub use ranking_cache::{ContestRankingItem, ProblemResult};
+
 use axum::{
     Extension, Json, Router,
     extract::{Path, Query},
@@ -748,117 +752,10 @@ async fn join_contest(
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ContestRankingItem {
-    user_id: String,
-    username: String,
-    solved_count: i32,
-    total_penalty: i64, // in seconds
-    problem_results: Vec<ProblemResult>,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ProblemResult {
-    problem_id: String,
-    accepted: bool,
-    attempts: i32,
-    accepted_time: Option<DateTime<Utc>>, // time from contest start
-}
-
-struct ContestInfo {
+pub struct ContestInfo {
     id: i32,
     begin_time: DateTime<Utc>,
-}
-
-async fn calculate_contest_ranking(
-    pool: &sqlx::PgPool,
-    contest: &ContestInfo,
-) -> Result<Vec<ContestRankingItem>> {
-    // Get all problems in contest
-    let problem_ids = sqlx::query_scalar!(
-        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_id",
-        contest.id
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
-
-    // Get all submissions during contest time
-    let submissions = sqlx::query!(
-        r#"
-        SELECT s.user_id, s.problem_id, s.result as "result: SubmissionResult", s.created_at,
-               u.username
-        FROM submissions s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.problem_id = ANY($1) AND s.contest_id = $2
-        ORDER BY s.user_id, s.problem_id, s.created_at
-        "#,
-        &problem_ids,
-        &contest.id
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
-
-    // Calculate rankings
-    let mut user_map: std::collections::HashMap<i32, ContestRankingItem> =
-        std::collections::HashMap::new();
-
-    for sub in submissions {
-        let entry = user_map
-            .entry(sub.user_id)
-            .or_insert_with(|| ContestRankingItem {
-                user_id: sub.user_id.to_string(),
-                username: sub.username.clone(),
-                solved_count: 0,
-                total_penalty: 0,
-                problem_results: problem_ids
-                    .iter()
-                    .map(|&pid| ProblemResult {
-                        problem_id: pid.to_string(),
-                        accepted: false,
-                        attempts: 0,
-                        accepted_time: None,
-                    })
-                    .collect(),
-            });
-
-        let problem_result = entry
-            .problem_results
-            .iter_mut()
-            .find(|pr| pr.problem_id == sub.problem_id.to_string())
-            .unwrap();
-
-        if problem_result.accepted {
-            continue; // Already solved
-        }
-
-        problem_result.attempts += 1;
-
-        if sub.result == SubmissionResult::Accepted {
-            problem_result.accepted = true;
-            let solve_time = (sub.created_at - contest.begin_time).num_seconds();
-            problem_result.accepted_time = Some(sub.created_at);
-
-            // Penalty: solve time + 20 minutes per wrong attempt
-            let penalty = solve_time + (problem_result.attempts - 1) as i64 * 20 * 60;
-            entry.total_penalty += penalty;
-            entry.solved_count += 1;
-        }
-    }
-
-    let mut rankings: Vec<ContestRankingItem> = user_map.into_values().collect();
-
-    // Sort by solved_count (desc), then by total_penalty (asc)
-    rankings.sort_by(|a, b| {
-        b.solved_count
-            .cmp(&a.solved_count)
-            .then_with(|| a.total_penalty.cmp(&b.total_penalty))
-    });
-
-    Ok(rankings)
+    end_time: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -920,9 +817,17 @@ async fn get_contest_ranking(
     let contest_info = ContestInfo {
         id: contest.id,
         begin_time: contest.begin_time,
+        end_time: contest.end_time,
     };
 
-    let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
+    // let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
+    let rankings = ranking_cache::get_contest_ranking_cached(&state, &contest_info)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get contest ranking: {:?}", e);
+            Error::msg("Failed to get contest ranking")
+                .status_code(StatusCode::INTERNAL_SERVER_ERROR)
+        })?;
 
     Ok(Json(GetContestRankingResponse { rankings }))
 }
@@ -1008,9 +913,17 @@ async fn get_overall_ranking(
         let contest_info = ContestInfo {
             id: contest.id,
             begin_time: contest.begin_time,
+            end_time: contest.end_time,
         };
 
-        let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
+        // let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
+        let rankings = ranking_cache::get_contest_ranking_cached(&state, &contest_info)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to get contest ranking: {:?}", e);
+                Error::msg("Failed to get contest ranking")
+                    .status_code(StatusCode::INTERNAL_SERVER_ERROR)
+            })?;
 
         for ranking in rankings {
             let user_id: i32 = ranking.user_id.parse().unwrap();

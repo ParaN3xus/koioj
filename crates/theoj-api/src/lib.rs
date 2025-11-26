@@ -10,6 +10,7 @@ use axum::{
 };
 use config::Config;
 use error::{Error, Result};
+use redis::aio::ConnectionManager;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{
     ConnectOptions, PgPool,
@@ -46,6 +47,7 @@ pub type State = axum::extract::State<Arc<AppState>>;
 pub struct AppState {
     pub config: Arc<Config>,
     pool: PgPool,
+    pub redis: ConnectionManager,
     pub started: Instant,
 
     pub judges: Arc<RwLock<HashMap<String, JudgeConnection>>>,
@@ -60,9 +62,14 @@ impl AppState {
             .connect_with(opt)
             .await?;
 
+        let redis_url = std::env::var("REDIS_URL").unwrap();
+        let redis_client = redis::Client::open(redis_url).expect("Failed to create Redis client");
+        let redis_manager = redis::aio::ConnectionManager::new(redis_client).await?;
+
         Ok(Self {
             config: config,
             pool: pool,
+            redis: redis_manager,
             started: Instant::now(),
             judges: Arc::new(RwLock::new(HashMap::new())),
         })

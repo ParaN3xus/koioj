@@ -36,6 +36,7 @@ passwords.workspace = true
 mime_guess.workspace = true
 rand.workspace = true
 futures.workspace = true
+redis.workspace = true
 
 theoj-web = { path = "../theoj-web", optional = true, default-features = false }
 theoj-common.workspace = true
