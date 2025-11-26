@@ -8,13 +8,14 @@ import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 import type { GetProblemResponse, SolutionListItem } from "@/theoj-api";
 import { ProblemService, UserRole, UserService } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const { handleApiError } = useApiErrorHandler();
 
-const problemId = route.params.id as string;
+const problemId = parseIntOrNull(route.params.id) ?? -1;
 const problem = ref<GetProblemResponse | null>(null);
 const solutions = ref<SolutionListItem[]>([]);
 const loading = ref(true);
@@ -34,7 +35,7 @@ const fetchData = async () => {
       await Promise.all([
         ProblemService.getProblem(problemId),
         ProblemService.listSolutions(problemId),
-        UserService.getRole(userStore.userId),
+        UserService.getRole(userStore.userId ?? -1),
       ]);
 
     problem.value = problemResponse;

@@ -11,7 +11,7 @@ use super::{ContestInfo, SubmissionResult};
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestRankingItem {
-    pub user_id: String,
+    pub user_id: i32,
     pub username: String,
     pub solved_count: i32,
     pub total_penalty: i64,
@@ -21,7 +21,7 @@ pub struct ContestRankingItem {
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProblemResult {
-    pub problem_id: String,
+    pub problem_id: i32,
     pub accepted: bool,
     pub attempts: i32,
     pub accepted_time: Option<DateTime<Utc>>,
@@ -123,7 +123,7 @@ pub async fn get_contest_ranking_cached(
                 .and_then(|ts| DateTime::from_timestamp(ts, 0));
 
             problem_results.push(ProblemResult {
-                problem_id: problem_id.to_string(),
+                problem_id: *problem_id,
                 accepted,
                 attempts,
                 accepted_time,
@@ -131,7 +131,7 @@ pub async fn get_contest_ranking_cached(
         }
 
         rankings.push(ContestRankingItem {
-            user_id: user_id.to_string(),
+            user_id: user_id,
             username,
             solved_count,
             total_penalty,
@@ -166,10 +166,7 @@ pub async fn rebuild_ranking_cache(
 
     // Write to Redis
     for item in &rankings {
-        let user_id: i32 = item
-            .user_id
-            .parse()
-            .map_err(|e| Error::msg(format!("invalid user_id: {}", e)))?;
+        let user_id: i32 = item.user_id;
 
         // Add to sorted set
         let score = calculate_score(item.solved_count, item.total_penalty);
@@ -400,14 +397,14 @@ async fn calculate_contest_ranking_from_db(
         let entry = user_map
             .entry(sub.user_id)
             .or_insert_with(|| ContestRankingItem {
-                user_id: sub.user_id.to_string(),
+                user_id: sub.user_id,
                 username: sub.username.clone(),
                 solved_count: 0,
                 total_penalty: 0,
                 problem_results: problem_ids
                     .iter()
                     .map(|&pid| ProblemResult {
-                        problem_id: pid.to_string(),
+                        problem_id: pid,
                         accepted: false,
                         attempts: 0,
                         accepted_time: None,
@@ -418,7 +415,7 @@ async fn calculate_contest_ranking_from_db(
         let problem_result = entry
             .problem_results
             .iter_mut()
-            .find(|pr| pr.problem_id == sub.problem_id.to_string())
+            .find(|pr| pr.problem_id == sub.problem_id)
             .unwrap();
 
         if problem_result.accepted {

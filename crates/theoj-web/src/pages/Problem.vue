@@ -10,10 +10,10 @@ import { useUserStore } from "@/stores/user.mjs";
 import {
   type GetProblemResponse,
   ProblemService,
-  ProblemStatus,
   UserRole,
   UserService,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const { renderMarkdown } = useMarkdownRenderer();
@@ -25,10 +25,10 @@ const userStore = useUserStore();
 const problemId = computed(() => {
   // contest mode: /contest/:cid/problem/:pid
   if (route.params.problemId) {
-    return route.params.problemId as string;
+    return parseIntOrNull(route.params.problemId) ?? -1;
   }
   // normal mode: /problem/:id
-  return route.params.id as string;
+  return parseIntOrNull(route.params.id) ?? -1;
 });
 
 const contestId = computed(() => route.params.contestId as string | undefined);
@@ -49,7 +49,7 @@ const loadProblemData = async () => {
   isLoading.value = true;
   try {
     const [roleResponse, problemResponse] = await Promise.all([
-      UserService.getRole(userStore.userId),
+      UserService.getRole(userStore.userId ?? -1),
       ProblemService.getProblem(problemId.value),
     ]);
 

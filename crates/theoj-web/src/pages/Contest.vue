@@ -6,7 +6,6 @@ import { useToast } from "vue-toastification";
 import ProblemStatusBadge from "@/components/Badges/ProblemStatusBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
-import InputModal from "@/components/Modal/modals/InputModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useContestPasswordPrompt } from "@/composables/useContestPasswordPrompt.mjs";
@@ -15,18 +14,15 @@ import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 import type {
-  GetAcStatusResponse,
   GetContestRankingResponse,
   GetContestResponse,
 } from "@/theoj-api";
 import {
   ContestService,
-  ContestStatus,
-  ProblemService,
-  SubmissionResult,
   UserRole,
   UserService,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -36,7 +32,7 @@ const { renderMarkdown } = useMarkdownRenderer();
 const contestPasswordStore = useContestPasswordStore();
 const userStore = useUserStore();
 
-const contestId = computed(() => route.params.id as string);
+const contestId = computed(() => parseIntOrNull(route.params.id) ?? -1);
 const isLoading = ref(true);
 const contestData = ref<GetContestResponse | null>(null);
 const currentUserRole = ref<UserRole | null>(null);
@@ -84,7 +80,7 @@ const { open: handleDeleteContest, close: closeDeleteContestModal } = useModal({
   },
 });
 
-const loadContestData = async (id: string, password?: string) => {
+const loadContestData = async (id: number, password?: string) => {
   try {
     isLoading.value = true;
 
@@ -281,14 +277,13 @@ onMounted(async () => {
                   <tr v-for="(problemId, index) in contestData.problemIds" :key="problemId">
                     <td>{{ String.fromCharCode(65 + index) }}</td>
                     <td>
-                      <EntityLink entity-type="contestProblem" :entity-id="problemId.toString()"
-                        :contest-id="contestId" />
+                      <EntityLink entity-type="contestProblem" :entity-id="problemId" :contest-id="contestId" />
                     </td>
                     <td>
-                      <ProblemStatusBadge :problem-id="problemId.toString()" :contest-id="parseInt(contestId)" />
+                      <ProblemStatusBadge :problem-id="problemId" :contest-id="contestId" />
                     </td>
                     <td class="text-right">
-                      <EntityLink entity-type="contestProblem" :entity-id="problemId.toString()" :contest-id="contestId"
+                      <EntityLink entity-type="contestProblem" :entity-id="problemId" :contest-id="contestId"
                         display-type="button" />
                     </td>
                   </tr>

@@ -1,10 +1,16 @@
 import { defineStore } from "pinia";
-import { type LoginResponse, OpenAPI, type RegisterResponse, UserService } from "../theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
+import {
+  type LoginResponse,
+  OpenAPI,
+  type RegisterResponse,
+  UserService,
+} from "../theoj-api";
 
 export const useUserStore = defineStore("user", {
   state: () => ({
     token: localStorage.getItem("token") || "",
-    userId: localStorage.getItem("userId") || "",
+    userId: parseIntOrNull(localStorage.getItem("userId")),
   }),
 
   getters: {
@@ -23,7 +29,7 @@ export const useUserStore = defineStore("user", {
       this.userId = data.userId;
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("userId", data.userId.toString());
 
       OpenAPI.TOKEN = data.token;
     },
@@ -48,14 +54,14 @@ export const useUserStore = defineStore("user", {
       this.userId = data.userId;
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("userId", data.userId.toString());
 
       OpenAPI.TOKEN = data.token;
     },
 
     logout(): void {
       this.token = "";
-      this.userId = "";
+      this.userId = -1;
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
     },

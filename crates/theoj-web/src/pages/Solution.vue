@@ -7,15 +7,15 @@ import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
 import type { GetProblemResponse, GetSolutionResponse } from "@/theoj-api";
 import { ProblemService } from "@/theoj-api";
-import { formatDateTime } from "@/utils.mjs";
+import { formatDateTime, parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
 const { renderMarkdown } = useMarkdownRenderer();
 const { handleApiError } = useApiErrorHandler();
 
-const problemId = route.params.problemId as string;
-const solutionId = route.params.solutionId as string;
+const problemId = parseIntOrNull(route.params.problemId) ?? -1;
+const solutionId = parseIntOrNull(route.params.solutionId) ?? -1;
 
 const solution = ref<GetSolutionResponse | null>(null);
 const problem = ref<GetProblemResponse | null>(null);

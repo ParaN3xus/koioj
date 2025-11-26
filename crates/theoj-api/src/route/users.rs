@@ -61,7 +61,7 @@ pub(crate) struct RegisterRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RegisterResponse {
-    user_id: String,
+    user_id: i32,
     token: String,
 }
 
@@ -128,10 +128,7 @@ async fn register(state: State, Json(p): Json<RegisterRequest>) -> Result<Json<R
     )
     .map_err(|e| Error::msg(format!("Token generation failed: {}", e)))?;
 
-    Ok(Json(RegisterResponse {
-        user_id: user_id.to_string(),
-        token,
-    }))
+    Ok(Json(RegisterResponse { user_id, token }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -145,7 +142,7 @@ pub(crate) struct LoginRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct LoginResponse {
-    user_id: String,
+    user_id: i32,
     token: String,
 }
 
@@ -190,7 +187,7 @@ async fn login(state: State, Json(p): Json<LoginRequest>) -> Result<Json<LoginRe
     .map_err(|e| Error::msg(format!("token generation failed: {}", e)))?;
 
     Ok(Json(LoginResponse {
-        user_id: user.id.to_string(),
+        user_id: user.id,
         token,
     }))
 }
@@ -206,7 +203,7 @@ pub(crate) struct PutRoleRequest {
     path = "/api/users/{user_id}/role",
     request_body = PutRoleRequest,
     params(
-        ("user_id" = String, Path)
+        ("user_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -217,20 +214,16 @@ pub(crate) struct PutRoleRequest {
 async fn put_role(
     state: State,
     claims: Extension<Claims>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<i32>,
     Json(p): Json<PutRoleRequest>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::PutRole,
-        Resource::User(user_id.parse().unwrap()),
+        Resource::User(user_id),
     )
     .await?;
-
-    let user_id_int: i32 = user_id
-        .parse()
-        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let _updated = sqlx::query!(
         r#"
@@ -240,7 +233,7 @@ async fn put_role(
         RETURNING id
         "#,
         p.user_role as UserRole,
-        user_id_int
+        user_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -260,7 +253,7 @@ pub(crate) struct GetRoleResponse {
     get,
     path = "/api/users/{user_id}/role",
     params(
-        ("user_id" = String, Path)
+        ("user_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -271,26 +264,22 @@ pub(crate) struct GetRoleResponse {
 async fn get_role(
     state: State,
     claims: Extension<Claims>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<i32>,
 ) -> Result<Json<GetRoleResponse>> {
     check_permission(
         &state.pool,
         &claims,
         Action::GetRole,
-        Resource::User(user_id.parse().unwrap()),
+        Resource::User(user_id),
     )
     .await?;
-
-    let user_id_int: i32 = user_id
-        .parse()
-        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let role = sqlx::query!(
         r#"
         SELECT user_role as "user_role: UserRole" FROM users
         WHERE id = $1 AND status = 'active'
         "#,
-        user_id_int
+        user_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -315,7 +304,7 @@ pub(crate) struct GetProfileResponse {
     get,
     path = "/api/users/{user_id}/profile",
     params(
-        ("user_id" = String, Path)
+        ("user_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -326,19 +315,15 @@ pub(crate) struct GetProfileResponse {
 async fn get_profile(
     state: State,
     claims: Extension<Claims>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<i32>,
 ) -> Result<Json<GetProfileResponse>> {
     check_permission(
         &state.pool,
         &claims,
         Action::GetProfile,
-        Resource::User(user_id.parse().unwrap()),
+        Resource::User(user_id),
     )
     .await?;
-
-    let user_id_int: i32 = user_id
-        .parse()
-        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let requester_id: i32 = claims.sub;
     let requester_role = role_of_claims(&state.pool, &claims).await?;
@@ -348,14 +333,14 @@ async fn get_profile(
         SELECT username, user_role as "user_role: UserRole", phone, email, user_code FROM users
         WHERE id = $1
         "#,
-        user_id_int
+        user_id
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
 
-    let is_self = requester_id == user_id_int;
+    let is_self = requester_id == user_id;
 
     let response = if is_self || requester_role == UserRole::Admin {
         GetProfileResponse {
@@ -398,7 +383,7 @@ pub(crate) struct PutProfileRequest {
     path = "/api/users/{user_id}/profile",
     request_body = PutProfileRequest,
     params(
-        ("user_id" = String, Path)
+        ("user_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -409,14 +394,14 @@ pub(crate) struct PutProfileRequest {
 async fn put_profile(
     state: State,
     claims: Extension<Claims>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<i32>,
     Json(p): Json<PutProfileRequest>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::PutProfile,
-        Resource::User(user_id.parse().unwrap()),
+        Resource::User(user_id),
     )
     .await?;
 
@@ -427,10 +412,6 @@ async fn put_profile(
         bail!(@BAD_REQUEST "invalid email");
     }
 
-    let user_id_int: i32 = user_id
-        .parse()
-        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
-
     let _updated = sqlx::query!(
         r#"
         UPDATE users
@@ -440,7 +421,7 @@ async fn put_profile(
         "#,
         p.username,
         p.email,
-        user_id_int
+        user_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -522,7 +503,7 @@ async fn change_password(
     delete,
     path = "/api/users/{user_id}",
     params(
-        ("user_id" = String, Path)
+        ("user_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -533,19 +514,15 @@ async fn change_password(
 async fn delete_user(
     state: State,
     claims: Extension<Claims>,
-    Path(user_id): Path<String>,
+    Path(user_id): Path<i32>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::DeleteUser,
-        Resource::User(user_id.parse().unwrap()),
+        Resource::User(user_id),
     )
     .await?;
-
-    let user_id_int: i32 = user_id
-        .parse()
-        .map_err(|_| Error::msg("invalid user_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let _updated = sqlx::query!(
         r#"
@@ -555,7 +532,7 @@ async fn delete_user(
         RETURNING id
         "#,
         UserStatus::Inactive as UserStatus,
-        user_id_int
+        user_id
     )
     .fetch_optional(&state.pool)
     .await

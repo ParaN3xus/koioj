@@ -87,7 +87,7 @@ pub(crate) struct CreateProblemRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CreateProblemResponse {
-    problem_id: String,
+    problem_id: i32,
 }
 
 #[utoipa::path(
@@ -159,7 +159,7 @@ async fn create_problem(
     state.write_problem_content(problem_id, &content).await?;
 
     Ok(Json(CreateProblemResponse {
-        problem_id: problem_id.to_string(),
+        problem_id: problem_id,
     }))
 }
 
@@ -173,7 +173,7 @@ pub(crate) struct ListProblemsQuery {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ProblemListItem {
-    problem_id: String,
+    problem_id: i32,
     name: String,
 }
 
@@ -242,7 +242,7 @@ async fn list_problems(
         .map_err(|e| Error::msg(format!("database error: {}", e)))?
         .into_iter()
         .map(|row| ProblemListItem {
-            problem_id: row.get::<i32, _>("id").to_string(),
+            problem_id: row.get::<i32, _>("id"),
             name: row.get::<String, _>("name"),
         })
         .collect();
@@ -253,7 +253,7 @@ async fn list_problems(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetProblemResponse {
-    problem_id: String,
+    problem_id: i32,
     name: String,
     description: String,
     input_description: String,
@@ -269,7 +269,7 @@ pub(crate) struct GetProblemResponse {
     get,
     path = "/api/problems/{problem_id}",
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     responses(
         (status = 200, body = GetProblemResponse),
@@ -279,11 +279,8 @@ pub(crate) struct GetProblemResponse {
 async fn get_problem(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
 ) -> Result<Json<GetProblemResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
     let user_role = role_of_claims(&state.pool, &claims).await?;
     let query = match user_role {
         UserRole::Teacher | UserRole::Admin => {
@@ -302,14 +299,14 @@ async fn get_problem(
         }
     };
     let problem = sqlx::query(query)
-        .bind(problem_id_int)
+        .bind(problem_id)
         .fetch_optional(&state.pool)
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?
         .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
-    let content = state.read_problem_content(problem_id_int).await?;
+    let content = state.read_problem_content(problem_id).await?;
     Ok(Json(GetProblemResponse {
-        problem_id: problem.get::<i32, _>("id").to_string(),
+        problem_id: problem.get::<i32, _>("id"),
         name: problem.get::<String, _>("name"),
         description: content.description,
         input_description: content.input_description,
@@ -341,7 +338,7 @@ pub(crate) struct PutProblemRequest {
     path = "/api/problems/{problem_id}",
     request_body = PutProblemRequest,
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -352,22 +349,18 @@ pub(crate) struct PutProblemRequest {
 async fn put_problem(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Json(p): Json<PutProblemRequest>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::PutProblem,
-        Resource::Problem(problem_id.parse().unwrap()),
+        Resource::Problem(problem_id),
     )
     .await?;
 
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
-    let mut content = state.read_problem_content(problem_id_int).await?;
+    let mut content = state.read_problem_content(problem_id).await?;
 
     let mut tx = state
         .pool
@@ -382,7 +375,7 @@ async fn put_problem(
                 UPDATE problems SET name = $1, updated_at = NOW() WHERE id = $2
                 "#,
                 name,
-                problem_id_int
+                problem_id
             )
             .execute(&mut *tx)
             .await
@@ -423,7 +416,7 @@ async fn put_problem(
             UPDATE problems SET time_limit = $1, updated_at = NOW() WHERE id = $2
             "#,
             time_limit,
-            problem_id_int
+            problem_id
         )
         .execute(&mut *tx)
         .await
@@ -439,7 +432,7 @@ async fn put_problem(
             UPDATE problems SET mem_limit = $1, updated_at = NOW() WHERE id = $2
             "#,
             mem_limit,
-            problem_id_int
+            problem_id
         )
         .execute(&mut *tx)
         .await
@@ -452,16 +445,14 @@ async fn put_problem(
             UPDATE problems SET status = $1, updated_at = NOW() WHERE id = $2
             "#,
             status as ProblemStatus,
-            problem_id_int
+            problem_id
         )
         .execute(&mut *tx)
         .await
         .map_err(|e| Error::msg(format!("database error: {}", e)))?;
     }
 
-    state
-        .write_problem_content(problem_id_int, &content)
-        .await?;
+    state.write_problem_content(problem_id, &content).await?;
 
     tx.commit()
         .await
@@ -474,7 +465,7 @@ async fn put_problem(
     delete,
     path = "/api/problems/{problem_id}",
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -485,25 +476,21 @@ async fn put_problem(
 async fn delete_problem(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::DeleteProblem,
-        Resource::Problem(problem_id.parse().unwrap()),
+        Resource::Problem(problem_id),
     )
     .await?;
-
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let used_in_contest: Option<i32> = sqlx::query_scalar!(
         r#"
         SELECT contest_id FROM contest_problems WHERE problem_id = $1 LIMIT 1
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -517,7 +504,7 @@ async fn delete_problem(
         r#"
         DELETE FROM problems WHERE id = $1
         "#,
-        problem_id_int
+        problem_id
     )
     .execute(&state.pool)
     .await
@@ -537,7 +524,7 @@ pub(crate) struct AddTestCasesRequest {
     path = "/api/problems/{problem_id}/test-cases",
     request_body = AddTestCasesRequest,
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -548,26 +535,22 @@ pub(crate) struct AddTestCasesRequest {
 async fn add_test_cases(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Json(p): Json<AddTestCasesRequest>,
 ) -> Result<()> {
     check_permission(
         &state.pool,
         &claims,
         Action::AddTestCases,
-        Resource::Problem(problem_id.parse().unwrap()),
+        Resource::Problem(problem_id),
     )
     .await?;
-
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
 
     sqlx::query!(
         r#"
         SELECT id FROM problems WHERE id = $1
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -583,7 +566,7 @@ async fn add_test_cases(
             r#"
         INSERT INTO test_cases (problem_id) VALUES ($1) RETURNING id
         "#,
-            problem_id_int
+            problem_id
         )
         .fetch_one(&state.pool)
         .await
@@ -605,7 +588,7 @@ pub(crate) struct GetTestCasesResponse {
     get,
     path = "/api/problems/{problem_id}/test-cases",
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -616,17 +599,13 @@ pub(crate) struct GetTestCasesResponse {
 async fn get_test_cases(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
 ) -> Result<Json<GetTestCasesResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
     check_permission(
         &state.pool,
         &claims,
         Action::GetTestCases,
-        Resource::Problem(problem_id_int),
+        Resource::Problem(problem_id),
     )
     .await?;
 
@@ -634,7 +613,7 @@ async fn get_test_cases(
         r#"
         SELECT id FROM test_cases WHERE problem_id = $1 ORDER BY id
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_all(&state.pool)
     .await
@@ -660,7 +639,7 @@ pub(crate) struct CreateSolutionRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CreateSolutionResponse {
-    solution_id: String,
+    solution_id: i32,
 }
 
 #[utoipa::path(
@@ -668,7 +647,7 @@ pub(crate) struct CreateSolutionResponse {
     path = "/api/problems/{problem_id}/solutions",
     request_body = CreateSolutionRequest,
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -679,20 +658,16 @@ pub(crate) struct CreateSolutionResponse {
 async fn create_solution(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Json(p): Json<CreateSolutionRequest>,
 ) -> Result<Json<CreateSolutionResponse>> {
     check_permission(
         &state.pool,
         &claims,
         Action::CreateSolution,
-        Resource::Problem(problem_id.parse().unwrap()),
+        Resource::Problem(problem_id),
     )
     .await?;
-
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
 
     if p.title.is_empty() || p.content.is_empty() {
         bail!(@BAD_REQUEST "title and content are required");
@@ -702,7 +677,7 @@ async fn create_solution(
         r#"
         SELECT id FROM problems WHERE id = $1
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -715,7 +690,7 @@ async fn create_solution(
         VALUES ($1, $2, $3)
         RETURNING id
         "#,
-        problem_id_int,
+        problem_id,
         claims.sub,
         p.title
     )
@@ -730,16 +705,16 @@ async fn create_solution(
         .await?;
 
     Ok(Json(CreateSolutionResponse {
-        solution_id: solution_id.to_string(),
+        solution_id: solution_id,
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SolutionListItem {
-    solution_id: String,
+    solution_id: i32,
     title: String,
-    author_id: String,
+    author_id: i32,
     author_name: String,
     created_at: String,
 }
@@ -754,7 +729,7 @@ pub(crate) struct ListSolutionsResponse {
     get,
     path = "/api/problems/{problem_id}/solutions",
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     responses(
         (status = 200, body = ListSolutionsResponse),
@@ -763,15 +738,11 @@ pub(crate) struct ListSolutionsResponse {
 )]
 async fn list_solutions(
     state: State,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
 ) -> Result<Json<ListSolutionsResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
     let _problem = sqlx::query!(
         "SELECT id FROM problems WHERE id = $1 AND status = 'active'",
-        problem_id_int
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -786,16 +757,16 @@ async fn list_solutions(
         WHERE s.problem_id = $1
         ORDER BY s.created_at DESC
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_all(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .into_iter()
     .map(|row| SolutionListItem {
-        solution_id: row.id.to_string(),
+        solution_id: row.id,
         title: row.title,
-        author_id: row.author.to_string(),
+        author_id: row.author,
         author_name: row.username,
         created_at: row.created_at.to_rfc3339(),
     })
@@ -807,10 +778,10 @@ async fn list_solutions(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetSolutionResponse {
-    solution_id: String,
+    solution_id: i32,
     title: String,
     content: String,
-    author_id: String,
+    author_id: i32,
     author_name: String,
     created_at: String,
 }
@@ -819,8 +790,8 @@ pub(crate) struct GetSolutionResponse {
     get,
     path = "/api/problems/{problem_id}/solutions/{solution_id}",
     params(
-        ("problem_id" = String, Path),
-        ("solution_id" = String, Path)
+        ("problem_id" = i32, Path),
+        ("solution_id" = i32, Path)
     ),
     responses(
         (status = 200, body = GetSolutionResponse),
@@ -829,16 +800,8 @@ pub(crate) struct GetSolutionResponse {
 )]
 async fn get_solution(
     state: State,
-    Path((problem_id, solution_id)): Path<(String, String)>,
+    Path((problem_id, solution_id)): Path<(i32, i32)>,
 ) -> Result<Json<GetSolutionResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
-    let solution_id_int: i32 = solution_id
-        .parse()
-        .map_err(|_| Error::msg("invalid solution_id").status_code(StatusCode::BAD_REQUEST))?;
-
     let solution = sqlx::query!(
         r#"
         SELECT s.id, s.title, s.author, s.created_at, u.username
@@ -847,21 +810,21 @@ async fn get_solution(
         JOIN problems p ON s.problem_id = p.id
         WHERE s.id = $1 AND s.problem_id = $2 AND p.status = 'active'
         "#,
-        solution_id_int,
-        problem_id_int
+        solution_id,
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("solution not found").status_code(StatusCode::NOT_FOUND))?;
 
-    let solution_content = state.read_solution_content(solution_id_int).await?;
+    let solution_content = state.read_solution_content(solution_id).await?;
 
     Ok(Json(GetSolutionResponse {
-        solution_id: solution.id.to_string(),
+        solution_id: solution.id,
         title: solution.title,
         content: solution_content.content,
-        author_id: solution.author.to_string(),
+        author_id: solution.author,
         author_name: solution.username,
         created_at: solution.created_at.to_rfc3339(),
     }))
@@ -871,8 +834,8 @@ async fn get_solution(
     delete,
     path = "/api/problems/{problem_id}/solutions/{solution_id}",
     params(
-        ("problem_id" = String, Path),
-        ("solution_id" = String, Path)
+        ("problem_id" = i32, Path),
+        ("solution_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -883,23 +846,15 @@ async fn get_solution(
 async fn delete_solution(
     state: State,
     claims: Extension<Claims>,
-    Path((problem_id, solution_id)): Path<(String, String)>,
+    Path((problem_id, solution_id)): Path<(i32, i32)>,
 ) -> Result<()> {
-    let solution_id_int: i32 = solution_id
-        .parse()
-        .map_err(|_| Error::msg("invalid solution_id").status_code(StatusCode::BAD_REQUEST))?;
-
     check_permission(
         &state.pool,
         &claims,
         Action::DeleteSolution,
-        Resource::Solution(solution_id_int),
+        Resource::Solution(solution_id),
     )
     .await?;
-
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
 
     let deleted = sqlx::query!(
         r#"
@@ -907,8 +862,8 @@ async fn delete_solution(
         WHERE id = $1 AND problem_id = $2
         RETURNING id
         "#,
-        solution_id_int,
-        problem_id_int
+        solution_id,
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
@@ -926,13 +881,13 @@ async fn delete_solution(
 pub(crate) struct SubmitRequest {
     code: String,
     lang: String,
-    contest_id: Option<String>,
+    contest_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SubmitResponse {
-    submission_id: String,
+    submission_id: i32,
 }
 
 #[utoipa::path(
@@ -940,7 +895,7 @@ pub(crate) struct SubmitResponse {
     path = "/api/problems/{problem_id}/submissions",
     request_body = SubmitRequest,
     params(
-        ("problem_id" = String, Path)
+        ("problem_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -951,13 +906,9 @@ pub(crate) struct SubmitResponse {
 async fn submit(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Json(p): Json<SubmitRequest>,
 ) -> Result<Json<SubmitResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
     if p.code.is_empty() || p.lang.is_empty() {
         bail!(@BAD_REQUEST "code and lang are required");
     }
@@ -966,24 +917,17 @@ async fn submit(
         r#"
         SELECT id FROM problems WHERE id = $1 AND status = 'active'
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
 
-    let contest_id_int: Option<i32> =
-        if let Some(contest_id_str) = p.contest_id {
-            Some(contest_id_str.parse().map_err(|_| {
-                Error::msg("invalid contest_id").status_code(StatusCode::BAD_REQUEST)
-            })?)
-        } else {
-            None
-        };
+    let contest_id = p.contest_id;
 
     // submitting to a contest's problem
-    if let Some(cid) = contest_id_int {
+    if let Some(cid) = contest_id {
         let _contest_exists = sqlx::query!(
             r#"
             SELECT id FROM contests 
@@ -1025,8 +969,8 @@ async fn submit(
         RETURNING id
         "#,
         claims.sub,
-        contest_id_int,
-        problem_id_int,
+        contest_id,
+        problem_id,
         p.lang
     )
     .fetch_one(&state.pool)
@@ -1044,7 +988,7 @@ async fn submit(
         r#"
         SELECT time_limit, mem_limit FROM problems WHERE id = $1
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_one(&state.pool)
     .await
@@ -1054,7 +998,7 @@ async fn submit(
         r#"
         SELECT id FROM test_cases WHERE problem_id = $1 ORDER BY id
         "#,
-        problem_id_int
+        problem_id
     )
     .fetch_all(&state.pool)
     .await
@@ -1095,7 +1039,7 @@ async fn submit(
     });
 
     Ok(Json(SubmitResponse {
-        submission_id: submission_id.to_string(),
+        submission_id: submission_id,
     }))
 }
 
@@ -1109,10 +1053,10 @@ pub(crate) struct ListSubmissionsQuery {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SubmissionListItem {
-    submission_id: String,
-    user_id: String,
+    submission_id: i32,
+    user_id: i32,
     username: String,
-    problem_id: String,
+    problem_id: i32,
     problem_name: String,
     lang: String,
     result: SubmissionResult,
@@ -1132,7 +1076,7 @@ pub(crate) struct ListSubmissionsResponse {
     get,
     path = "/api/problems/{problem_id}/submissions",
     params(
-        ("problem_id" = String, Path),
+        ("problem_id" = i32, Path),
         ("page" = Option<i64>, Query),
         ("pageSize" = Option<i64>, Query),
     ),
@@ -1145,13 +1089,9 @@ pub(crate) struct ListSubmissionsResponse {
 async fn list_submissions(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Query(q): Query<ListSubmissionsQuery>,
 ) -> Result<Json<ListSubmissionsResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
     let page = q.page.unwrap_or(1).max(1);
     let page_size = q.page_size.unwrap_or(20).clamp(1, 100);
     let offset = (page - 1) * page_size;
@@ -1176,7 +1116,7 @@ async fn list_submissions(
         if requester_role == UserRole::Admin || requester_role == UserRole::Teacher {
             let total: i64 = sqlx::query_scalar!(
                 "SELECT COUNT(*) FROM submissions WHERE problem_id = $1",
-                problem_id_int
+                problem_id
             )
             .fetch_one(&state.pool)
             .await
@@ -1196,7 +1136,7 @@ async fn list_submissions(
                 ORDER BY s.created_at DESC
                 LIMIT $2 OFFSET $3
                 "#,
-                problem_id_int,
+                problem_id,
                 page_size,
                 offset
             )
@@ -1207,7 +1147,7 @@ async fn list_submissions(
         } else {
             let total: i64 = sqlx::query_scalar!(
                 "SELECT COUNT(*) FROM submissions WHERE problem_id = $1 AND user_id = $2",
-                problem_id_int,
+                problem_id,
                 claims.sub
             )
             .fetch_one(&state.pool)
@@ -1228,7 +1168,7 @@ async fn list_submissions(
                 ORDER BY s.created_at DESC
                 LIMIT $3 OFFSET $4
                 "#,
-                problem_id_int,
+                problem_id,
                 claims.sub,
                 page_size,
                 offset
@@ -1242,10 +1182,10 @@ async fn list_submissions(
     let submission_list: Vec<SubmissionListItem> = submissions
         .into_iter()
         .map(|row| SubmissionListItem {
-            submission_id: row.id.to_string(),
-            user_id: row.user_id.to_string(),
+            submission_id: row.id,
+            user_id: row.user_id,
             username: row.username,
-            problem_id: row.problem_id.to_string(),
+            problem_id: row.problem_id,
             problem_name: row.problem_name,
             lang: row.lang,
             result: row.result,
@@ -1267,17 +1207,17 @@ async fn list_submissions(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TestCaseResultItem {
-    test_case_id: String,
+    test_case_id: i32,
     result: TestCaseJudgeResult,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetSubmissionResponse {
-    submission_id: String,
-    user_id: String,
+    submission_id: i32,
+    user_id: i32,
     username: String,
-    problem_id: String,
+    problem_id: i32,
     problem_name: String,
     lang: String,
     code: String,
@@ -1292,8 +1232,8 @@ pub(crate) struct GetSubmissionResponse {
     get,
     path = "/api/problems/{problem_id}/submissions/{submission_id}",
     params(
-        ("problem_id" = String, Path),
-        ("submission_id" = String, Path)
+        ("problem_id" = i32, Path),
+        ("submission_id" = i32, Path)
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -1304,21 +1244,13 @@ pub(crate) struct GetSubmissionResponse {
 async fn get_submission(
     state: State,
     claims: Extension<Claims>,
-    Path((problem_id, submission_id)): Path<(String, String)>,
+    Path((problem_id, submission_id)): Path<(i32, i32)>,
 ) -> Result<Json<GetSubmissionResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
-    let submission_id_int: i32 = submission_id
-        .parse()
-        .map_err(|_| Error::msg("invalid submission_id").status_code(StatusCode::BAD_REQUEST))?;
-
     check_permission(
         &state.pool,
         &claims,
         Action::GetSubmission,
-        Resource::Submission(submission_id_int),
+        Resource::Submission(submission_id),
     )
     .await?;
 
@@ -1333,15 +1265,15 @@ async fn get_submission(
         JOIN problems p ON s.problem_id = p.id
         WHERE s.id = $1 AND s.problem_id = $2
         "#,
-        submission_id_int,
-        problem_id_int
+        submission_id,
+        problem_id
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("submission not found").status_code(StatusCode::NOT_FOUND))?;
 
-    let submission_code = state.read_submission_code(submission_id_int).await?;
+    let submission_code = state.read_submission_code(submission_id).await?;
 
     let test_case_results = sqlx::query!(
         r#"
@@ -1350,23 +1282,23 @@ async fn get_submission(
         WHERE submission_id = $1
         ORDER BY test_case_id
         "#,
-        submission_id_int
+        submission_id
     )
     .fetch_all(&state.pool)
     .await
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .into_iter()
     .map(|row| TestCaseResultItem {
-        test_case_id: row.test_case_id.to_string(),
+        test_case_id: row.test_case_id,
         result: row.result,
     })
     .collect();
 
     Ok(Json(GetSubmissionResponse {
-        submission_id: submission.id.to_string(),
-        user_id: submission.user_id.to_string(),
+        submission_id: submission.id,
+        user_id: submission.user_id,
         username: submission.username,
-        problem_id: submission.problem_id.to_string(),
+        problem_id: submission.problem_id,
         problem_name: submission.problem_name,
         lang: submission.lang,
         code: submission_code.code,
@@ -1394,7 +1326,7 @@ struct GetAcStatusQuery {
     get,
     path = "/api/problems/{problem_id}/ac-status",
     params(
-        ("problem_id" = String, Path),
+        ("problem_id" = i32, Path),
         ("contest_id" = Option<i32>, Query, description = "Optional contest ID to filter submissions")
     ),
     security(("bearer_auth" = [])),
@@ -1406,20 +1338,16 @@ struct GetAcStatusQuery {
 async fn get_ac_status(
     state: State,
     claims: Extension<Claims>,
-    Path(problem_id): Path<String>,
+    Path(problem_id): Path<i32>,
     Query(params): Query<GetAcStatusQuery>,
 ) -> Result<Json<GetAcStatusResponse>> {
-    let problem_id_int: i32 = problem_id
-        .parse()
-        .map_err(|_| Error::msg("invalid problem_id").status_code(StatusCode::BAD_REQUEST))?;
-
     let accepted_count: i64 = if let Some(contest_id) = params.contest_id {
         sqlx::query_scalar!(
             r#"
             SELECT COUNT(*) FROM submissions
             WHERE problem_id = $1 AND user_id = $2 AND contest_id = $3 AND result = 'accepted'
             "#,
-            problem_id_int,
+            problem_id,
             claims.sub,
             contest_id
         )
@@ -1433,7 +1361,7 @@ async fn get_ac_status(
             SELECT COUNT(*) FROM submissions
             WHERE problem_id = $1 AND user_id = $2 AND result = 'accepted'
             "#,
-            problem_id_int,
+            problem_id,
             claims.sub
         )
         .fetch_one(&state.pool)
@@ -1453,7 +1381,7 @@ async fn get_ac_status(
                 ORDER BY created_at DESC
                 LIMIT 1
                 "#,
-                problem_id_int,
+                problem_id,
                 claims.sub,
                 contest_id
             )
@@ -1468,7 +1396,7 @@ async fn get_ac_status(
                 ORDER BY created_at DESC
                 LIMIT 1
                 "#,
-                problem_id_int,
+                problem_id,
                 claims.sub
             )
             .fetch_optional(&state.pool)

@@ -7,12 +7,13 @@ import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import type { GetProblemResponse } from "@/theoj-api";
 import { ProblemService } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
 const { handleApiError } = useApiErrorHandler();
 
-const problemId = route.params.id as string;
+const problemId = parseIntOrNull(route.params.id) ?? -1;
 const problem = ref<GetProblemResponse | null>(null);
 const loading = ref(true);
 const submitting = ref(false);

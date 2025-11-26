@@ -49,7 +49,7 @@ const userStore = useUserStore();
       <div class="navbar-end space-x-2 md:flex-none md:w-auto">
         <template v-if="userStore.isLoggedIn">
           <RouterLink class="flex items-center btn btn-ghost btn-circle justify-center rounded-full"
-            :to="buildPath(routeMap.profile.path, { id: userStore.userId })">
+            :to="buildPath(routeMap.profile.path, { id: userStore.userId ?? -1 })">
             <div class="w-10 h-10 flex items-center justify-center rounded-full bg-base-300 ">
               <Icon icon="fa7-solid:user" width="16" />
             </div>

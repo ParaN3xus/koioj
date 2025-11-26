@@ -13,8 +13,8 @@ import {
   type GetSubmissionResponse,
   ProblemService,
   SubmissionResult,
-  TestCaseJudgeResult,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const { handleApiError } = useApiErrorHandler();
@@ -23,14 +23,14 @@ const contestPasswordStore = useContestPasswordStore();
 const problemId = computed(() => {
   // Contest mode: /contest/:contestId/problem/:problemId/submission/:submissionId
   if (route.params.problemId) {
-    return route.params.problemId as string;
+    return parseIntOrNull(route.params.problemId) ?? -1;
   }
   // Normal mode: /problem/:problemId/submission/:submissionId
-  return route.params.problemId as string;
+  return parseIntOrNull(route.params.problemId) ?? -1;
 });
 
-const submissionId = ref<string>(route.params.submissionId as string);
-const contestId = computed(() => route.params.contestId as string | undefined);
+const submissionId = ref<number>(parseIntOrNull(route.params.submissionId) ?? -1);
+const contestId = computed(() => parseIntOrNull(route.params.contestId));
 const isContestMode = computed(() => !!contestId.value);
 
 const submission = ref<GetSubmissionResponse | null>(null);
@@ -49,7 +49,7 @@ const fetchSubmission = async () => {
     // If in contest mode and haven't fetched contest data yet, fetch it
     if (isContestMode.value && contestId.value && !contestData.value) {
       const storedPassword = contestPasswordStore.getPassword(
-        Number(contestId.value),
+        contestId.value,
       );
       const contestResponse = await ContestService.getContest(
         contestId.value,

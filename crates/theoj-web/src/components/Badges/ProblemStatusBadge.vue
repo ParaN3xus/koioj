@@ -5,7 +5,7 @@ import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { type GetAcStatusResponse, ProblemService } from "@/theoj-api";
 
 interface Props {
-  problemId: string;
+  problemId: number;
   contestId?: number;
 }
 

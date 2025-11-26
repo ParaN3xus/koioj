@@ -56,7 +56,7 @@ const totalPages = computed(() => {
 const loadContests = async () => {
   isLoading.value = true;
   try {
-    const roleResponse = await UserService.getRole(userStore.userId);
+    const roleResponse = await UserService.getRole(userStore.userId ?? -1);
     currentUserRole.value = roleResponse.role;
 
     const response = await ContestService.listContests(

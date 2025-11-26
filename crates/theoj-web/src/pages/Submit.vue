@@ -13,6 +13,7 @@ import {
   ProblemService,
   type SubmitRequest,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,13 +24,13 @@ const contestPasswordStore = useContestPasswordStore();
 const problemId = computed(() => {
   // Contest mode: /contest/:contestId/problem/:problemId/submit
   if (route.params.problemId) {
-    return route.params.problemId as string;
+    return parseIntOrNull(route.params.problemId) ?? -1;
   }
   // Normal mode: /problem/:id/submit
-  return route.params.id as string;
+  return parseIntOrNull(route.params.id) ?? -1;
 });
 
-const contestId = computed(() => route.params.contestId as string | undefined);
+const contestId = computed(() => parseIntOrNull(route.params.contestId));
 const isContestMode = computed(() => !!contestId.value);
 
 const code = ref<string>("");

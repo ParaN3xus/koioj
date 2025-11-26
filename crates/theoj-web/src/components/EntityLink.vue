@@ -20,9 +20,9 @@ type DisplayType = "button" | "link";
 interface Props {
   entityType: EntityType;
   displayType?: DisplayType;
-  entityId: string;
-  problemId?: string; // For solution, submission, contestProblem, contestSubmission
-  contestId?: string; // For contestProblem, contestSubmission
+  entityId: number;
+  problemId?: number; // For solution, submission, contestProblem, contestSubmission
+  contestId?: number; // For contestProblem, contestSubmission
   customClass?: string;
 }
 
@@ -133,7 +133,7 @@ const fetchEntityName = async () => {
       }
 
       case "trainingPlan": {
-        const response = await TrainingPlanService.getTrainingPlan(parseInt(props.entityId, 10));
+        const response = await TrainingPlanService.getTrainingPlan(props.entityId);
         entityName.value = response.name;
         break;
       }

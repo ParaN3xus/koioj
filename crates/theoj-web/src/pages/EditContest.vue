@@ -17,6 +17,7 @@ import {
   ProblemService,
   type UpdateContestRequest,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -29,7 +30,7 @@ const isSubmitting = ref(false);
 const isLoading = ref(false);
 const showDescriptionPreview = ref(false);
 const isEditMode = ref(false);
-const contestId = ref<string | null>(null);
+const contestId = ref<number>(-1);
 
 const formData = ref<CreateContestRequest & { status?: ContestStatus | null }>({
   name: "",
@@ -51,7 +52,7 @@ const problemIdInputRef = ref<HTMLInputElement | null>(null);
 
 const contestPasswordStore = useContestPasswordStore();
 const { promptForPassword } = useContestPasswordPrompt({
-  contestId: Number(contestId.value),
+  contestId: contestId.value,
   onPasswordSubmit: async (password: string) => {
     if (!contestId.value) {
       toast.error("invalid contestId");
@@ -73,7 +74,7 @@ watch(problemIdInput, async (newId) => {
   isLoadingProblem.value = true;
   const wasFocused = document.activeElement === problemIdInputRef.value;
   try {
-    const response = await ProblemService.getProblem(String(newId));
+    const response = await ProblemService.getProblem(newId);
     previewProblem.value = {
       id: Number(response.problemId),
       name: response.name,
@@ -110,7 +111,7 @@ const handleAddProblem = async (event?: Event) => {
   isLoadingProblem.value = true;
   try {
     const response = await ProblemService.getProblem(
-      String(problemIdInput.value),
+      problemIdInput.value,
     );
     selectedProblems.value.push({
       id: Number(response.problemId),
@@ -151,7 +152,7 @@ const handleDragEnd = () => {
   draggedIndex.value = null;
 };
 
-const loadContestData = async (id: string, password?: string) => {
+const loadContestData = async (id: number, password?: string) => {
   isLoading.value = true;
   try {
     const storedPassword =
@@ -177,7 +178,7 @@ const loadContestData = async (id: string, password?: string) => {
     // Load problem details
     for (const problemId of response.problemIds) {
       try {
-        const problem = await ProblemService.getProblem(problemId.toString());
+        const problem = await ProblemService.getProblem(problemId);
         selectedProblems.value.push({
           id: problemId,
           name: problem.name,
@@ -326,7 +327,7 @@ const handleCancel = () => {
 };
 
 onMounted(() => {
-  const id = route.params.id as string | undefined;
+  const id = parseIntOrNull(route.params.id) ?? -1;
   if (id) {
     isEditMode.value = true;
     contestId.value = id;

@@ -19,6 +19,7 @@ import {
   UserRole,
   UserService,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -26,7 +27,7 @@ const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 
-const problemId = computed(() => route.params.id as string | undefined);
+const problemId = computed(() => parseIntOrNull(route.params.id) ?? -1);
 const isEditMode = computed(() => !!problemId.value);
 const pageTitle = computed(() =>
   isEditMode.value ? "Edit Problem" : "Create Problem",
@@ -38,7 +39,7 @@ const isSaving = ref(false);
 
 // Form data
 const formData = ref<GetProblemResponse & { status: ProblemStatus }>({
-  problemId: "",
+  problemId: -1,
   name: "",
   description: "",
   inputDescription: "",
@@ -83,7 +84,7 @@ const loadProblemData = async () => {
 
   isLoading.value = true;
   try {
-    const roleResponse = await UserService.getRole(userStore.userId);
+    const roleResponse = await UserService.getRole(userStore.userId ?? -1);
     currentUserRole.value = roleResponse.role;
 
     if (!canEdit.value) {
@@ -111,7 +112,7 @@ const loadProblemData = async () => {
 };
 
 onMounted(async () => {
-  const role = (await UserService.getRole(userStore.userId)).role;
+  const role = (await UserService.getRole(userStore.userId ?? -1)).role;
   if (!(role === UserRole.ADMIN || role === UserRole.TEACHER)) {
     toast.error(`Permission denied!`);
     router.push(routeMap.index.path);

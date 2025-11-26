@@ -53,7 +53,7 @@ const totalPages = computed(() => {
 const loadTrainingPlans = async () => {
   isLoading.value = true;
   try {
-    const roleResponse = await UserService.getRole(userStore.userId);
+    const roleResponse = await UserService.getRole(userStore.userId ?? -1);
     currentUserRole.value = roleResponse.role;
 
     const response = await TrainingPlanService.listTrainingPlans(
@@ -139,12 +139,12 @@ const handleFilterChange = () => {
                   {{ plan.id }}
                 </td>
                 <td>
-                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id.toString()" display-type="link">
+                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id" display-type="link">
                     {{ plan.name }}
                   </EntityLink>
                 </td>
                 <td class="text-right">
-                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id.toString()" display-type="button" />
+                  <EntityLink entity-type="trainingPlan" :entity-id="plan.id" display-type="button" />
                 </td>
               </tr>
             </tbody>

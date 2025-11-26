@@ -65,7 +65,7 @@ watch(contestIdInput, async (newId) => {
 
   try {
     const response = await ContestService.getContest(
-      String(newId),
+      newId,
       contestPasswordStore.getPassword(newId),
     );
     previewContest.value = {
@@ -104,10 +104,10 @@ const handleAddContest = async (event?: Event) => {
     return;
   }
 
-  await addContestById(String(contestIdInput.value));
+  await addContestById(contestIdInput.value);
 };
 
-const addContestById = async (id: string, password?: string) => {
+const addContestById = async (id: number, password?: string) => {
   try {
     isLoadingContest.value = true;
 
@@ -289,7 +289,7 @@ const loadTrainingPlanData = async (id: string) => {
     for (const contest of response.contests) {
       try {
         const contestDetail = await ContestService.getContest(
-          String(contest.contestId),
+          contest.contestId,
           contestPasswordStore.getPassword(contest.contestId),
         );
         selectedContests.value.push({
@@ -493,7 +493,7 @@ onMounted(() => {
                           {{ contest.id }}
                         </td>
                         <td>
-                          <EntityLink entity-type="contest" :entity-id="contest.id.toString()">
+                          <EntityLink entity-type="contest" :entity-id="contest.id">
                             {{ contest.name }}
                           </EntityLink>
                         </td>
@@ -511,7 +511,7 @@ onMounted(() => {
                           {{ previewContest.id }}
                         </td>
                         <td>
-                          <EntityLink entity-type="contest" :entity-id="previewContest.id.toString()">
+                          <EntityLink entity-type="contest" :entity-id="previewContest.id">
                             {{ previewContest.name }}
                           </EntityLink>
                         </td>
@@ -566,7 +566,7 @@ onMounted(() => {
               <div v-if="selectedParticipants.length > 0" class="mt-3 flex flex-wrap gap-2">
                 <div v-for="participant in selectedParticipants" class="badge badge-neutral badge-lg gap-2 p-3">
                   <span class="font-mono text-xs">{{ participant }}</span>
-                  <EntityLink entity-type="user" :entity-id="participant.toString()" />
+                  <EntityLink entity-type="user" :entity-id="participant" />
                   <button type="button" class="btn btn-ghost btn-xs btn-circle -ml-1 -mr-2"
                     style="height: 1.25rem; min-height: 1.25rem; width: 1.25rem;"
                     @click.prevent="handleRemoveParticipant(participant)">

@@ -15,6 +15,7 @@ import {
   UserRole,
   UserService,
 } from "@/theoj-api";
+import { parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -22,7 +23,7 @@ const toast = useToast();
 const userStore = useUserStore();
 const route = useRoute();
 
-const profileUserId = computed(() => route.params.id as string);
+const profileUserId = computed(() => parseIntOrNull(route.params.id) ?? -1);
 const isOwnProfile = computed(() => profileUserId.value === userStore.userId);
 
 const userRole = ref<UserRole | null>(null);
@@ -64,7 +65,7 @@ const canViewDetails = computed(() => {
 const loadUserData = async () => {
   isLoading.value = true;
   try {
-    const currentRoleResponse = await UserService.getRole(userStore.userId);
+    const currentRoleResponse = await UserService.getRole(userStore.userId ?? -1);
     currentUserRole.value = currentRoleResponse.role;
     const roleResponse = await UserService.getRole(profileUserId.value);
     userRole.value = roleResponse.role;
@@ -194,7 +195,7 @@ const handleUpdateBasicInfo = async () => {
 
   try {
     await UserService.putProfile(
-      userStore.userId,
+      userStore.userId ?? -1,
       formData as PutProfileRequest,
     );
     toast.success("Profile updated!");
@@ -249,7 +250,7 @@ const { open: handleDeleteAccount, close: closeDeleteAccountModal } = useModal({
 
 const handleConfirmDeleteAccount = async () => {
   try {
-    await UserService.deleteUser(userStore.userId);
+    await UserService.deleteUser(userStore.userId ?? -1);
     userStore.logout();
     toast.success("User deleted!");
     router.push(routeMap.index.path);

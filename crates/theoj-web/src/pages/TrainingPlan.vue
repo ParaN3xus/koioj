@@ -157,7 +157,7 @@ onMounted(async () => {
                 <tr v-for="contest in trainingPlanData.contests" :key="contest.contestId">
                   <td>
                     <div class="flex items-center gap-2">
-                      <EntityLink entity-type="contest" :entity-id="contest.contestId.toString()" display-type="link">
+                      <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="link">
                         {{ contest.name }}
                       </EntityLink>
                     </div>
@@ -168,7 +168,7 @@ onMounted(async () => {
                     <ContestStatusBadge :begin-time="contest.beginTime" :end-time="contest.endTime" />
                   </td>
                   <td class="text-right">
-                    <EntityLink entity-type="contest" :entity-id="contest.contestId.toString()" display-type="button" />
+                    <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="button" />
                   </td>
                 </tr>
               </tbody>

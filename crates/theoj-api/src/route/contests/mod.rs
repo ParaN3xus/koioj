@@ -87,7 +87,7 @@ pub(crate) struct CreateContestRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CreateContestResponse {
-    contest_id: String,
+    contest_id: i32,
 }
 
 #[utoipa::path(
@@ -181,7 +181,7 @@ async fn create_contest(
     }
 
     Ok(Json(CreateContestResponse {
-        contest_id: contest_id.to_string(),
+        contest_id: contest_id,
     }))
 }
 
@@ -222,7 +222,7 @@ pub(crate) struct ListContestsQuery {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ContestListItem {
-    contest_id: String,
+    contest_id: i32,
     name: String,
     begin_time: DateTime<Utc>,
     end_time: DateTime<Utc>,
@@ -296,7 +296,7 @@ async fn list_contests(
         .map_err(|e| Error::msg(format!("database error: {}", e)))?
         .into_iter()
         .map(|row| ContestListItem {
-            contest_id: row.get::<i32, _>("id").to_string(),
+            contest_id: row.get::<i32, _>("id"),
             name: row.get::<String, _>("name"),
             begin_time: row.get::<DateTime<Utc>, _>("begin_time"),
             end_time: row.get::<DateTime<Utc>, _>("end_time"),
@@ -310,7 +310,7 @@ async fn list_contests(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetContestResponse {
-    contest_id: String,
+    contest_id: i32,
     name: String,
     description: String,
     begin_time: DateTime<Utc>,
@@ -332,7 +332,7 @@ pub(crate) struct GetContestQuery {
     get,
     path = "/api/contests/{contest_id}",
     params(
-        ("contest_id" = String, Path, description = "Contest ID"),
+        ("contest_id" = i32, Path, description = "Contest ID"),
         GetContestQuery
     ),
     responses(
@@ -344,13 +344,9 @@ pub(crate) struct GetContestQuery {
 async fn get_contest(
     state: State,
     claims: Extension<Claims>,
-    Path(contest_id): Path<String>,
+    Path(contest_id): Path<i32>,
     Query(query): Query<GetContestQuery>,
 ) -> Result<Json<GetContestResponse>> {
-    let contest_id: i32 = contest_id
-        .parse()
-        .map_err(|_| Error::msg("invalid contest id").status_code(StatusCode::BAD_REQUEST))?;
-
     let contest = sqlx::query!(
         r#"
         SELECT id, name, begin_time, end_time, password, type as "type_: ContestType", status as "status_: ContestStatus", created_at
@@ -409,7 +405,7 @@ async fn get_contest(
     };
 
     Ok(Json(GetContestResponse {
-        contest_id: contest.id.to_string(),
+        contest_id: contest.id,
         name: contest.name,
         description: content.description,
         begin_time: contest.begin_time,
@@ -438,14 +434,14 @@ pub(crate) struct UpdateContestRequest {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UpdateContestResponse {
-    contest_id: String,
+    contest_id: i32,
 }
 
 #[utoipa::path(
     put,
     path = "/api/contests/{contest_id}",
     params(
-        ("contest_id" = String, Path, description = "Contest ID")
+        ("contest_id" = i32, Path, description = "Contest ID")
     ),
     request_body = UpdateContestRequest,
     responses(
@@ -457,20 +453,16 @@ pub(crate) struct UpdateContestResponse {
 async fn put_contest(
     state: State,
     claims: Extension<Claims>,
-    Path(contest_id): Path<String>,
+    Path(contest_id): Path<i32>,
     Json(p): Json<UpdateContestRequest>,
 ) -> Result<Json<UpdateContestResponse>> {
     check_permission(
         &state.pool,
         &claims,
         Action::PutContest,
-        Resource::Contest(contest_id.parse().unwrap()),
+        Resource::Contest(contest_id),
     )
     .await?;
-
-    let contest_id: i32 = contest_id
-        .parse()
-        .map_err(|_| Error::msg("invalid contest id").status_code(StatusCode::BAD_REQUEST))?;
 
     // Check if contest exists
     let exists = sqlx::query_scalar!(
@@ -607,20 +599,20 @@ async fn put_contest(
     }
 
     Ok(Json(UpdateContestResponse {
-        contest_id: contest_id.to_string(),
+        contest_id: contest_id,
     }))
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DeleteContestResponse {
-    contest_id: String,
+    contest_id: i32,
 }
 #[utoipa::path(
     delete,
     path = "/api/contests/{contest_id}",
     params(
-        ("contest_id" = String, Path, description = "Contest ID")
+        ("contest_id" = i32, Path, description = "Contest ID")
     ),
     responses(
         (status = 200, body = DeleteContestResponse),
@@ -631,12 +623,8 @@ pub(crate) struct DeleteContestResponse {
 async fn delete_contest(
     state: State,
     claims: Extension<Claims>,
-    Path(contest_id): Path<String>,
+    Path(contest_id): Path<i32>,
 ) -> Result<Json<DeleteContestResponse>> {
-    let contest_id: i32 = contest_id
-        .parse()
-        .map_err(|_| Error::msg("invalid contest id").status_code(StatusCode::BAD_REQUEST))?;
-
     check_permission(
         &state.pool,
         &claims,
@@ -679,7 +667,7 @@ async fn delete_contest(
     // let _ = state.delete_contest_content(contest_id).await;
 
     Ok(Json(DeleteContestResponse {
-        contest_id: contest_id.to_string(),
+        contest_id: contest_id,
     }))
 }
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -692,7 +680,7 @@ pub(crate) struct JoinContestRequest {
     post,
     path = "/api/contests/{contest_id}/join",
     params(
-        ("contest_id" = String, Path, description = "Contest ID"),
+        ("contest_id" = i32, Path, description = "Contest ID"),
     ),
     request_body = JoinContestRequest,
     responses(
@@ -704,13 +692,9 @@ pub(crate) struct JoinContestRequest {
 async fn join_contest(
     state: State,
     claims: Extension<Claims>,
-    Path(contest_id): Path<String>,
+    Path(contest_id): Path<i32>,
     Json(req): Json<JoinContestRequest>,
 ) -> Result<()> {
-    let contest_id: i32 = contest_id
-        .parse()
-        .map_err(|_| Error::msg("invalid contest id").status_code(StatusCode::BAD_REQUEST))?;
-
     let user_id = claims.sub;
 
     // Get contest info
@@ -783,7 +767,7 @@ pub(crate) struct GetContestRankingResponse {
     get,
     path = "/api/contests/{contest_id}/ranking",
     params(
-        ("contest_id" = String, Path, description = "Contest ID"),
+        ("contest_id" = i32, Path, description = "Contest ID"),
         GetContestQuery
     ),
     responses(
@@ -795,13 +779,9 @@ pub(crate) struct GetContestRankingResponse {
 async fn get_contest_ranking(
     state: State,
     claims: Extension<Claims>,
-    Path(contest_id): Path<String>,
+    Path(contest_id): Path<i32>,
     Query(query): Query<GetContestQuery>,
 ) -> Result<Json<GetContestRankingResponse>> {
-    let contest_id: i32 = contest_id
-        .parse()
-        .map_err(|_| Error::msg("invalid contest id").status_code(StatusCode::BAD_REQUEST))?;
-
     // Get contest info
     let contest = sqlx::query!(
         r#"
@@ -850,7 +830,7 @@ async fn get_contest_ranking(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OverallRankingItem {
-    user_id: String,
+    user_id: i32,
     username: String,
     contest_count: i32, // joined count
     total_solved: i32,
@@ -866,7 +846,7 @@ pub(crate) struct GetOverallRankingResponse {
 #[derive(Deserialize, IntoParams)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetOverallRankingQuery {
-    contest_ids: Vec<String>,
+    contest_ids: Vec<i32>,
 }
 
 #[utoipa::path(
@@ -893,11 +873,7 @@ async fn get_overall_ranking(
     .await?;
 
     // Parse contest IDs
-    let contest_ids: Vec<i32> = query
-        .contest_ids
-        .into_iter()
-        .filter_map(|s| s.trim().parse::<i32>().ok())
-        .collect();
+    let contest_ids: Vec<i32> = query.contest_ids;
 
     if contest_ids.is_empty() {
         bail!(@BAD_REQUEST "no valid contest IDs provided");
@@ -941,12 +917,12 @@ async fn get_overall_ranking(
             })?;
 
         for ranking in rankings {
-            let user_id: i32 = ranking.user_id.parse().unwrap();
+            let user_id: i32 = ranking.user_id;
 
             let entry = user_stats
                 .entry(user_id)
                 .or_insert_with(|| OverallRankingItem {
-                    user_id: ranking.user_id.clone(),
+                    user_id: ranking.user_id,
                     username: ranking.username.clone(),
                     contest_count: 0,
                     total_solved: 0,
@@ -960,7 +936,7 @@ async fn get_overall_ranking(
 
     // Count actual participation for each user
     for user_entry in user_stats.values_mut() {
-        let user_id: i32 = user_entry.user_id.parse().unwrap();
+        let user_id: i32 = user_entry.user_id;
 
         let participated_count = sqlx::query_scalar!(
             "SELECT COUNT(*) FROM contest_participants WHERE user_id = $1 AND contest_id = ANY($2)",
