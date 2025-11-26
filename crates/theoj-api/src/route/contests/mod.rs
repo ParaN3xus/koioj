@@ -384,14 +384,29 @@ async fn get_contest(
             description: String::new(),
         });
 
+    let mut is_allowed = true;
+    let now = chrono::Utc::now();
+    if contest.begin_time > now {
+        is_allowed = match user_role {
+            UserRole::Admin => true,
+            _ => {
+                let owner_id = Resource::Contest(contest_id).owner_id(&state.pool).await?;
+                owner_id == claims.sub
+            }
+        };
+    };
+
     // Get problem list
-    let problem_ids = sqlx::query_scalar!(
-        "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_id",
-        contest_id
-    )
-    .fetch_all(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+    let problem_ids = match is_allowed {
+        true => sqlx::query_scalar!(
+            "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_id",
+            contest_id
+        )
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?,
+        false => vec![],
+    };
 
     Ok(Json(GetContestResponse {
         contest_id: contest.id.to_string(),
