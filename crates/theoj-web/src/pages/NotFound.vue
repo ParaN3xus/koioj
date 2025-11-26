@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
+import { routeMap } from "@/routes.mjs";
 </script>
 
 <template>
@@ -11,7 +12,7 @@ import { RouterLink } from "vue-router";
       <p class="text-base md:text-lg text-base-content/70 mb-8 max-w-md mx-auto">
         Sorry, the page you are looking for doesn't exist or has been moved.
       </p>
-      <RouterLink to="/" class="btn btn-outline btn-neutral btn-lg">
+      <RouterLink :to="routeMap.index.path" class="btn btn-outline btn-neutral btn-lg">
         Go to Homepage
       </RouterLink>
     </div>
