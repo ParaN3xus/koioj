@@ -15,11 +15,6 @@ const siteTitle = "TheOJ";
             © {{ currentYear }} {{ siteTitle }}. All rights reserved.
           </span>
         </div>
-        <div class="flex items-center gap-2 md:gap-4">
-          <RouterLink to="/" class="btn btn-ghost btn-xs md:btn-sm btn-circle">
-            <Icon icon="fa7-solid:house" width="18" />
-          </RouterLink>
-        </div>
       </div>
     </div>
   </footer>
