@@ -108,7 +108,7 @@ onMounted(async () => {
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else-if="trainingPlanData" class="space-y-8">
+    <div v-else-if="trainingPlanData">
       <!-- Contest Info Card -->
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -140,7 +140,7 @@ onMounted(async () => {
       </div>
 
       <!-- Problems & Ranking Card -->
-      <div class="card bg-base-100 shadow-xl">
+      <div class="card bg-base-100 shadow-xl mt-6">
         <div class="card-body">
           <div class="overflow-x-auto">
             <table class="table table-zebra">
