@@ -1,5 +1,32 @@
+use core::fmt;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use utoipa::ToSchema;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    C,
+    Cpp,
+    Java,
+    Python,
+    Go,
+    Rust,
+    JavaScript,
+}
+
+impl fmt::Display for Language {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = serde_plain::to_string(self).map_err(|_| fmt::Error)?;
+        write!(f, "{}", s)
+    }
+}
+impl FromStr for Language {
+    type Err = serde_plain::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_plain::from_str(s)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JudgeInfo {
@@ -7,6 +34,7 @@ pub struct JudgeInfo {
     pub version: String,
     pub timestamp: i64,
     pub signature: String,
+    pub languages: Vec<Language>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -28,7 +56,7 @@ pub enum ApiToJudgeMessage {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct JudgeTask {
     pub submission_id: i32,
-    pub lang: String,
+    pub lang: Language,
     pub code: String,
     pub time_limit: i32,   // ms
     pub memory_limit: i32, // MB

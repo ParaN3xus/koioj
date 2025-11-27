@@ -78,7 +78,7 @@ pub fn install_sandbox(config: &Config) -> Result<()> {
 
     for (lang, lang_config) in &config.languages {
         if let Some(install_cmds) = &lang_config.install {
-            tracing::info!("Installing {}...", lang);
+            tracing::info!("Installing {:?}...", lang);
             for cmd in install_cmds {
                 tracing::info!("Executing: {}", cmd);
                 let status = Command::new("chroot")
@@ -90,7 +90,7 @@ pub fn install_sandbox(config: &Config) -> Result<()> {
                     .context(format!("Failed to execute: {}", cmd))?;
 
                 if !status.success() {
-                    tracing::error!("Warning: Command failed for {}: {}", lang, cmd);
+                    tracing::error!("Warning: Command failed for {:?}: {}", lang, cmd);
                 }
             }
         }

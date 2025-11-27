@@ -8,8 +8,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
-use theoj_common::bail;
 use theoj_common::judge::{JudgeTask, SubmissionResult, TestCase, TestCaseJudgeResult};
+use theoj_common::{bail, judge::Language};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::{
@@ -880,7 +880,7 @@ async fn delete_solution(
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SubmitRequest {
     code: String,
-    lang: String,
+    lang: Language,
     contest_id: Option<i32>,
 }
 
@@ -909,7 +909,7 @@ async fn submit(
     Path(problem_id): Path<i32>,
     Json(p): Json<SubmitRequest>,
 ) -> Result<Json<SubmitResponse>> {
-    if p.code.is_empty() || p.lang.is_empty() {
+    if p.code.is_empty() {
         bail!(@BAD_REQUEST "code and lang are required");
     }
 
@@ -971,7 +971,7 @@ async fn submit(
         claims.sub,
         contest_id,
         problem_id,
-        p.lang
+        p.lang.to_string()
     )
     .fetch_one(&state.pool)
     .await
@@ -1013,7 +1013,7 @@ async fn submit(
     }
     let task = JudgeTask {
         submission_id: submission.id,
-        lang: p.lang.clone(),
+        lang: p.lang,
         code: code_for_judge,
         time_limit: problem_limits.time_limit,
         memory_limit: problem_limits.mem_limit,

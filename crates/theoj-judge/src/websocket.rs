@@ -54,6 +54,7 @@ async fn connect_and_handle(url: &str, config: &Config) -> Result<()> {
         version: env!("CARGO_PKG_VERSION").to_string(),
         timestamp,
         signature,
+        languages: config.languages.keys().copied().collect(),
     });
 
     // send register

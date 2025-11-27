@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::vec;
 use sysinfo::System;
 use theoj_common::judge::{
-    JudgeLoad, JudgeResult, JudgeToApiMessage, SubmissionResult, TestCase, TestCaseJudgeResult,
-    TestCaseResult,
+    JudgeLoad, JudgeResult, JudgeToApiMessage, Language, SubmissionResult, TestCase,
+    TestCaseJudgeResult, TestCaseResult,
 };
 use tokio::sync::{RwLock, Semaphore};
 
@@ -72,7 +72,7 @@ impl JudgeExecutor {
     pub async fn execute_task(
         &mut self,
         submission_id: i32,
-        lang: String,
+        lang: Language,
         code: String,
         time_limit: i32,
         memory_limit: i32,
@@ -115,7 +115,7 @@ impl JudgeExecutor {
 
 async fn judge_submission(
     submission_id: i32,
-    lang: String,
+    lang: Language,
     code: String,
     time_limit: i32,
     memory_limit: i32,
@@ -131,7 +131,7 @@ async fn judge_submission(
     let pids_limit = 16;
 
     if lang_config.is_none() {
-        return JudgeToApiMessage::Error(submission_id, format!("Unsupported language {}", lang));
+        return JudgeToApiMessage::Error(submission_id, format!("Unsupported language {:?}", lang));
     }
     let lang_config = lang_config.unwrap();
 

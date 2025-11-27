@@ -8,8 +8,8 @@ use futures::{sink::SinkExt, stream::StreamExt};
 use rand::Rng;
 use std::{sync::Arc, time::Instant};
 use theoj_common::judge::{
-    ApiToJudgeMessage, JudgeInfo, JudgeLoad, JudgeTask, JudgeToApiMessage, SubmissionResult,
-    TestCaseJudgeResult,
+    ApiToJudgeMessage, JudgeInfo, JudgeLoad, JudgeTask, JudgeToApiMessage, Language,
+    SubmissionResult, TestCaseJudgeResult,
 };
 use theoj_common::{bail, error::Context};
 use tokio::sync::{RwLock, mpsc};
@@ -37,24 +37,30 @@ impl JudgeConnection {
 }
 
 impl crate::AppState {
-    pub async fn select_judge(&self) -> Result<String> {
+    pub async fn select_judge(&self, lang: Language) -> Result<String> {
         let judges = self.judges.read().await;
 
         if judges.is_empty() {
             bail!("no available judge");
         }
 
-        // filter timeout judgers
+        // filter timeout judgers and language support
         let now = Instant::now();
         let mut available_judges = Vec::new();
         for (id, conn) in judges.iter() {
             let last_heartbeat = *conn.last_heartbeat.read().await;
-            if now.duration_since(last_heartbeat).as_secs() < 60 {
+            if now.duration_since(last_heartbeat).as_secs() < 60
+                && conn.info.languages.contains(&lang)
+            {
                 available_judges.push((id, conn));
             }
         }
+
         if available_judges.is_empty() {
-            bail!("no available judge (all timeout)");
+            bail!(
+                "no available judge supporting {:?} (all timeout or language not supported)",
+                lang
+            );
         }
 
         // load
@@ -97,7 +103,7 @@ impl crate::AppState {
     }
 
     pub async fn submit_judge_task(&self, task: JudgeTask) -> Result<()> {
-        let judge_id = self.select_judge().await?;
+        let judge_id = self.select_judge(task.lang).await?;
         self.send_judge_task(&judge_id, task).await
     }
 }

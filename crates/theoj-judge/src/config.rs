@@ -3,7 +3,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use serde::Deserialize;
-use theoj_common::utils::deserialize_log_level;
+use theoj_common::{judge::Language, utils::deserialize_log_level};
 use tracing::Level;
 
 use crate::sandbox::LanguageConfig;
@@ -20,7 +20,7 @@ pub struct Config {
     pub judger_bin_path: PathBuf,
     pub rootfs_path: PathBuf,
     pub cgroup_base: PathBuf,
-    pub languages: HashMap<String, LanguageConfig>,
+    pub languages: HashMap<Language, LanguageConfig>,
     pub rootfs_base: String,
     pub rootfs_install: Vec<String>,
 }
