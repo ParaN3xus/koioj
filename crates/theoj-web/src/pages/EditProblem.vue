@@ -28,7 +28,7 @@ const toast = useToast();
 const userStore = useUserStore();
 
 const problemId = computed(() => parseIntOrNull(route.params.id) ?? -1);
-const isEditMode = computed(() => !!problemId.value);
+const isEditMode = computed(() => !!problemId.value && problemId.value !== -1);
 const pageTitle = computed(() =>
   isEditMode.value ? "Edit Problem" : "Create Problem",
 );

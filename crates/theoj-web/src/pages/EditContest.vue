@@ -328,7 +328,7 @@ const handleCancel = () => {
 
 onMounted(() => {
   const id = parseIntOrNull(route.params.id) ?? -1;
-  if (id) {
+  if (id && id !== -1) {
     isEditMode.value = true;
     contestId.value = id;
     loadContestData(id);
