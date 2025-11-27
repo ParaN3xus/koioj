@@ -15,7 +15,7 @@ import {
 } from "@/koioj-api";
 import { routeMap, routes } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
@@ -74,7 +74,7 @@ const loadUserData = async () => {
     const profileResponse = await UserService.getProfile(profileUserId.value);
     profileData.value = profileResponse;
 
-    document.title = `Profile of ${profileResponse.username} - KoiOJ`;
+    document.title = `Profile of ${profileResponse.username} - ${APP_NAME}`;
 
     toast.success("Profile loaded!");
   } catch (e) {

@@ -14,7 +14,7 @@ import {
 } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const { handleApiError } = useApiErrorHandler();
@@ -56,9 +56,9 @@ const fetchSubmission = async () => {
         storedPassword || null,
       );
       contestData.value = contestResponse;
-      document.title = `Submission of ${submissionResponse.problemName} in ${contestResponse.name} - KoiOJ`;
+      document.title = `Submission of ${submissionResponse.problemName} in ${contestResponse.name} - ${APP_NAME}`;
     } else {
-      document.title = `Submission of ${submissionResponse.problemName} - KoiOJ`;
+      document.title = `Submission of ${submissionResponse.problemName} - ${APP_NAME}`;
     }
 
     isLoading.value = false;

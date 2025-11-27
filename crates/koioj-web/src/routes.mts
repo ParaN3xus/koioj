@@ -19,6 +19,7 @@ import Submission from "./pages/Submission.vue";
 import Submit from "./pages/Submit.vue";
 import TrainingPlan from "./pages/TrainingPlan.vue";
 import TrainingPlanList from "./pages/TrainingPlanList.vue";
+import { APP_NAME } from "./utils.mts";
 
 const createRoutes = <
   T extends Record<
@@ -46,132 +47,132 @@ export const routeMap = createRoutes({
   index: {
     path: "/",
     component: Index,
-    title: "KoiOJ - The Online Judge Platform",
+    title: `${APP_NAME} - The Online Judge Platform`,
   },
   login: {
     path: "/users/login",
     component: Login,
-    title: "Login - KoiOJ",
+    title: `Login - ${APP_NAME}`,
   },
   register: {
     path: "/users/register",
     component: Register,
-    title: "Register - KoiOJ",
+    title: `Register - ${APP_NAME}`,
   },
   profile: {
     path: "/users/profile/:id",
     component: Profile,
-    title: "Profile - KoiOJ",
+    title: `Profile - ${APP_NAME}`,
   },
   problemList: {
     path: "/problem",
     component: ProblemList,
-    title: "Problem - KoiOJ",
+    title: `Problem - ${APP_NAME}`,
   },
   createProblem: {
     path: "/problem/new",
     component: EditProblem,
-    title: "New Problem - KoiOJ",
+    title: `New Problem - ${APP_NAME}`,
   },
   problem: {
     path: "/problem/:id",
     component: Problem,
-    title: "Problem - KoiOJ",
+    title: `Problem - ${APP_NAME}`,
   },
   editProblem: {
     path: "/problem/:id/edit",
     component: EditProblem,
-    title: "Edit Problem - KoiOJ",
+    title: `Edit Problem - ${APP_NAME}`,
   },
   soloutionList: {
     path: "/problem/:id/solution",
     component: SolutionList,
-    title: "Solution - KoiOJ",
+    title: `Solution - ${APP_NAME}`,
   },
   createSolution: {
     path: "/problem/:id/solution/new",
     component: CreateSolution,
-    title: "New Solution - KoiOJ",
+    title: `New Solution - ${APP_NAME}`,
   },
   solution: {
     path: "/problem/:problemId/solution/:solutionId",
     component: Solution,
-    title: "Solution - KoiOJ",
+    title: `Solution - ${APP_NAME}`,
   },
   submit: {
     path: "/problem/:id/submit",
     component: Submit,
-    title: "Submit - KoiOJ",
+    title: `Submit - ${APP_NAME}`,
   },
   submission: {
     path: "/problem/:problemId/submission/:submissionId",
     component: Submission,
-    title: "Submission - KoiOJ",
+    title: `Submission - ${APP_NAME}`,
   },
   contestList: {
     path: "/contest",
     component: ContestList,
-    title: "Contest - KoiOJ",
+    title: `Contest - ${APP_NAME}`,
   },
   createContest: {
     path: "/contest/new",
     component: EditContest,
-    title: "New Contest - KoiOJ",
+    title: `New Contest - ${APP_NAME}`,
   },
   contest: {
     path: "/contest/:id",
     component: Contest,
-    title: "Contest - KoiOJ",
+    title: `Contest - ${APP_NAME}`,
   },
   editContest: {
     path: "/contest/:id/edit",
     component: EditContest,
-    title: "Edit Contest - KoiOJ",
+    title: `Edit Contest - ${APP_NAME}`,
   },
   contestProblem: {
     path: "/contest/:contestId/problem/:problemId",
     component: Problem,
-    title: "Problem - KoiOJ",
+    title: `Problem - ${APP_NAME}`,
   },
   contestSubmit: {
     path: "/contest/:contestId/problem/:problemId/submit",
     component: Submit,
-    title: "Submit - KoiOJ",
+    title: `Submit - ${APP_NAME}`,
   },
   contestSubmission: {
     path: "/contest/:contestId/problem/:problemId/submission/:submissionId",
     component: Submission,
-    title: "Submission - KoiOJ",
+    title: `Submission - ${APP_NAME}`,
   },
   overallRanking: {
     path: "/contest/overall-ranking",
     component: OverallRanking,
-    title: "OverallRanking - KoiOJ",
+    title: `OverallRanking - ${APP_NAME}`,
   },
   trainingPlanList: {
     path: "/training",
     component: TrainingPlanList,
-    title: "Training Plan - KoiOJ",
+    title: `Training Plan - ${APP_NAME}`,
   },
   createTrainingPlan: {
     path: "/training/new",
     component: EditTrainingPlan,
-    title: "New Training Plan - KoiOJ",
+    title: `New Training Plan - ${APP_NAME}`,
   },
   editTrainingPlan: {
     path: "/training/:id/edit",
     component: EditTrainingPlan,
-    title: "Edit Training Plan - KoiOJ",
+    title: `Edit Training Plan - ${APP_NAME}`,
   },
   trainingPlan: {
     path: "/training/:id",
     component: TrainingPlan,
-    title: "Training Plan - KoiOJ",
+    title: `Training Plan - ${APP_NAME}`,
   },
   notFound: {
     path: "/:pathMatch(.*)*",
     component: NotFound,
-    title: "404 Not Found - KoiOJ",
+    title: `404 Not Found - ${APP_NAME}`,
   },
 });
 

@@ -8,7 +8,7 @@ import type { GetProblemResponse, SolutionListItem } from "@/koioj-api";
 import { ProblemService, UserRole, UserService } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -42,7 +42,7 @@ const fetchData = async () => {
     solutions.value = solutionsResponse.solutions;
     currentUserRole.value = roleResponse.role;
 
-    document.title = `Solutions of ${problemResponse.name} - KoiOJ`;
+    document.title = `Solutions of ${problemResponse.name} - ${APP_NAME}`;
   } catch (e) {
     handleApiError(e);
   } finally {

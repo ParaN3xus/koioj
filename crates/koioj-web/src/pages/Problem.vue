@@ -17,7 +17,7 @@ import {
 } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const { renderMarkdown } = useMarkdownRenderer();
@@ -64,7 +64,7 @@ const loadProblemData = async () => {
     currentUserRole.value = roleResponse.role;
     problemData.value = problemResponse;
 
-    document.title = `${problemResponse.name} - KoiOJ`;
+    document.title = `${problemResponse.name} - ${APP_NAME}`;
   } catch (e) {
     handleApiError(e);
     router.push(routeMap.index.path);

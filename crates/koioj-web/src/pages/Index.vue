@@ -2,7 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { RouterLink } from "vue-router";
 import { routeMap } from "@/routes.mjs";
-import { sourceRepo } from "@/utils.mjs";
+import { APP_NAME, SOURCE_REPO } from "@/utils.mjs";
 
 interface FeatureCard {
   title: string;
@@ -38,7 +38,7 @@ const features: FeatureCard[] = [
     title: "Source Code",
     description: "View our open source code on GitHub",
     icon: "fa6-brands:github",
-    route: sourceRepo,
+    route: SOURCE_REPO,
     color: "text-info",
   },
 ];
@@ -51,7 +51,7 @@ const features: FeatureCard[] = [
       <div class="card-body text-center py-12">
         <h1 class="text-5xl font-bold mb-4">
           <Icon icon="fa6-solid:gavel" class="inline-block mr-3" />
-          Welcome to KoiOJ
+          Welcome to {{ APP_NAME }}
         </h1>
         <p class="text-xl text-base-content/70 mb-6">
           The Online Judge Platform for Competitive Programming

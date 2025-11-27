@@ -8,4 +8,6 @@ export function parseIntOrNull(value: string | string[] | null | undefined): num
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-export const sourceRepo = `https://github.com/ParaN3xus/koioj/`
+export const SOURCE_REPO = `https://github.com/ParaN3xus/koioj/`
+
+export const APP_NAME = 'KoiOJ'

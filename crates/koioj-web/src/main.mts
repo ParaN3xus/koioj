@@ -7,6 +7,7 @@ import { routes } from "./routes.mts";
 
 import "./style.css";
 import "vue-toastification/dist/index.css";
+import { APP_NAME } from "./utils.mts";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,7 +15,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next) => {
-  document.title = (to.meta.title as string) || "KoiOJ";
+  document.title = (to.meta.title as string) || APP_NAME;
   next();
 });
 
@@ -39,7 +40,10 @@ const toastOptions = {
 };
 
 
-createApp(App)
+const app = createApp(App)
+document.title = APP_NAME
+
+app
   .use(router)
   .use(pinia)
   .use(Toast, toastOptions)

@@ -14,7 +14,7 @@ import {
 } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -117,9 +117,9 @@ const loadProblemAndContestData = async (password?: string) => {
         contestPasswordStore.setPassword(Number(contestId.value), password);
       }
       contestData.value = contestResponse;
-      document.title = `Submitting to ${problemResponse.name} in ${contestResponse.name} - KoiOJ`;
+      document.title = `Submitting to ${problemResponse.name} in ${contestResponse.name} - ${APP_NAME}`;
     } else {
-      document.title = `Submitting to ${problemResponse.name} - KoiOJ`;
+      document.title = `Submitting to ${problemResponse.name} - ${APP_NAME}`;
     }
   } catch (e) {
     handleApiError(e);

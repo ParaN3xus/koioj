@@ -2,6 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
+import { APP_NAME } from "@/utils.mjs";
 import ThemeToggle from "./ThemeToggle.vue";
 
 const navButtons = [
@@ -9,8 +10,6 @@ const navButtons = [
   { to: routeMap.contestList.path, text: "Contest", icon: "fa7-solid:trophy" },
   { to: "/training", text: "Training", icon: "fa7-solid:chart-line" },
 ];
-const siteTitle = "KoiOJ";
-
 const userStore = useUserStore();
 </script>
 
@@ -33,7 +32,7 @@ const userStore = useUserStore();
       </div>
 
       <div class="navbar-start hidden md:flex md:flex-1">
-        <RouterLink class="btn btn-ghost text-xl font-bold mr-8" to="/">{{ siteTitle }}</RouterLink>
+        <RouterLink class="btn btn-ghost text-xl font-bold mr-8" to="/">{{ APP_NAME }}</RouterLink>
         <div class="hidden md:flex md:space-x-2">
           <RouterLink v-for="item in navButtons" :key="item.to" class="btn btn-ghost w-18 text-base" :to="item.to">
             <Icon :icon="item.icon" width="20" class="mr-1" />
@@ -43,7 +42,7 @@ const userStore = useUserStore();
       </div>
 
       <div class="navbar-center md:hidden">
-        <RouterLink class="btn btn-ghost text-xl font-bold" to="/">{{ siteTitle }}</RouterLink>
+        <RouterLink class="btn btn-ghost text-xl font-bold" to="/">{{ APP_NAME }}</RouterLink>
       </div>
 
       <div class="navbar-end space-x-2 md:flex-none md:w-auto">

@@ -16,7 +16,7 @@ import { ContestService, UserRole, UserService } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import { parseIntOrNull } from "@/utils.mjs";
+import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -86,7 +86,7 @@ const loadContestData = async (id: number, password?: string) => {
     );
     contestData.value = response;
 
-    document.title = `${response.name} - KoiOJ`;
+    document.title = `${response.name} - ${APP_NAME}`;
 
     if (storedPassword && !password) {
       // Verify stored password is still valid

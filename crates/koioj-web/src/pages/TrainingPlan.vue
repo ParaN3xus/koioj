@@ -14,7 +14,7 @@ import type { GetTrainingPlanResponse } from "@/koioj-api";
 import { TrainingPlanService, UserRole, UserService } from "@/koioj-api";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import { formatDateTime } from "@/utils.mjs";
+import { APP_NAME, formatDateTime } from "@/utils.mjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -75,7 +75,7 @@ const loadTrainingPlanData = async (id: string) => {
     );
     trainingPlanData.value = response;
 
-    document.title = `${response.name} - KoiOJ`;
+    document.title = `${response.name} - ${APP_NAME}`;
 
     // Load user role if logged in
     if (userStore.userId) {
