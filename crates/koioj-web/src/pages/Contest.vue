@@ -86,6 +86,8 @@ const loadContestData = async (id: number, password?: string) => {
     );
     contestData.value = response;
 
+    document.title = `${response.name} - KoiOJ`;
+
     if (storedPassword && !password) {
       // Verify stored password is still valid
       contestPasswordStore.setPassword(Number(id), storedPassword);

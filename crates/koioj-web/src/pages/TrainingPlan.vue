@@ -75,6 +75,8 @@ const loadTrainingPlanData = async (id: string) => {
     );
     trainingPlanData.value = response;
 
+    document.title = `${response.name} - KoiOJ`;
+
     // Load user role if logged in
     if (userStore.userId) {
       const roleResponse = await UserService.getRole(userStore.userId);
