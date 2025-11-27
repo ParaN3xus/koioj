@@ -962,11 +962,11 @@ async fn submit(
         }
     }
 
-    let submission_id: i32 = sqlx::query_scalar!(
+    let submission = sqlx::query!(
         r#"
         INSERT INTO submissions (user_id, contest_id, problem_id, lang, result)
         VALUES ($1, $2, $3, $4, 'pending')
-        RETURNING id
+        RETURNING id, created_at
         "#,
         claims.sub,
         contest_id,
@@ -981,7 +981,7 @@ async fn submit(
     let submission_code = SubmissionCode { code: p.code };
 
     state
-        .write_submission_code(submission_id, &submission_code)
+        .write_submission_code(submission.id, &submission_code)
         .await?;
 
     let problem_limits = sqlx::query!(
@@ -1012,7 +1012,7 @@ async fn submit(
         });
     }
     let task = JudgeTask {
-        submission_id,
+        submission_id: submission.id,
         lang: p.lang.clone(),
         code: code_for_judge,
         time_limit: problem_limits.time_limit,
@@ -1028,18 +1028,36 @@ async fn submit(
                 r#"
                 UPDATE submissions SET result = 'unknown_error', updated_at = NOW() WHERE id = $1
                 "#,
-                submission_id
+                submission.id
             )
             .execute(&state_clone.pool)
             .await
             {
                 tracing::error!("Failed to update submission status: {:?}", update_err);
             }
+
+            // Update ranking cache if this is a contest submission
+            // UnknownError is treated as a failed attempt
+            if let Some(contest_id) = contest_id {
+                if let Err(e) = crate::route::contests::ranking_cache::update_ranking_on_submission(
+                    &state,
+                    contest_id,
+                    claims.sub,
+                    problem_id,
+                    SubmissionResult::UnknownError,
+                    submission.created_at,
+                )
+                .await
+                {
+                    tracing::error!("Failed to update ranking cache: {}", e);
+                    // Don't fail the whole operation if cache update fails
+                }
+            }
         }
     });
 
     Ok(Json(SubmitResponse {
-        submission_id: submission_id,
+        submission_id: submission.id,
     }))
 }
 
