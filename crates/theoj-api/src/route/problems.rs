@@ -10,7 +10,7 @@ use sqlx::Row;
 use std::sync::Arc;
 use theoj_common::bail;
 use theoj_common::judge::{JudgeTask, SubmissionResult, TestCase, TestCaseJudgeResult};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::{
     AppState, Result, State,
@@ -1043,11 +1043,12 @@ async fn submit(
     }))
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, IntoParams)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ListSubmissionsQuery {
     page: Option<i64>,
     page_size: Option<i64>,
+    contest_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -1076,9 +1077,8 @@ pub(crate) struct ListSubmissionsResponse {
     get,
     path = "/api/problems/{problem_id}/submissions",
     params(
-        ("problem_id" = i32, Path),
-        ("page" = Option<i64>, Query),
-        ("pageSize" = Option<i64>, Query),
+        ("problem_id" = i32, Path, description = "Problem ID"),
+        ListSubmissionsQuery
     ),
     security(("bearer_auth" = [])),
     responses(
@@ -1112,17 +1112,52 @@ async fn list_submissions(
         username: String,
         problem_name: String,
     }
-    let (total, submissions) =
-        if requester_role == UserRole::Admin || requester_role == UserRole::Teacher {
-            let total: i64 = sqlx::query_scalar!(
+    let (total, submissions) = if requester_role == UserRole::Admin
+        || requester_role == UserRole::Teacher
+    {
+        let total: i64 = if let Some(cid) = q.contest_id {
+            sqlx::query_scalar!(
+                "SELECT COUNT(*) FROM submissions WHERE problem_id = $1 AND contest_id = $2",
+                problem_id,
+                cid
+            )
+            .fetch_one(&state.pool)
+            .await?
+            .unwrap_or(0)
+        } else {
+            sqlx::query_scalar!(
                 "SELECT COUNT(*) FROM submissions WHERE problem_id = $1",
                 problem_id
             )
             .fetch_one(&state.pool)
-            .await
-            .map_err(|e| Error::msg(format!("database error: {}", e)))?
-            .unwrap_or(0);
-            let submissions = sqlx::query_as!(
+            .await?
+            .unwrap_or(0)
+        };
+
+        let submissions = if let Some(cid) = q.contest_id {
+            sqlx::query_as!(
+                SubmissionWithDetails,
+                r#"
+                SELECT s.id, s.user_id, s.problem_id, s.lang, 
+                    s.result as "result: SubmissionResult",
+                    s.time_consumption, s.mem_consumption, s.created_at,
+                    u.username, p.name as problem_name
+                FROM submissions s
+                JOIN users u ON s.user_id = u.id
+                JOIN problems p ON s.problem_id = p.id
+                WHERE s.problem_id = $1 AND s.contest_id = $2
+                ORDER BY s.created_at DESC
+                LIMIT $3 OFFSET $4
+                "#,
+                problem_id,
+                cid,
+                page_size,
+                offset
+            )
+            .fetch_all(&state.pool)
+            .await?
+        } else {
+            sqlx::query_as!(
                 SubmissionWithDetails,
                 r#"
                 SELECT s.id, s.user_id, s.problem_id, s.lang, 
@@ -1141,20 +1176,56 @@ async fn list_submissions(
                 offset
             )
             .fetch_all(&state.pool)
-            .await
-            .map_err(|e| Error::msg(format!("database error: {}", e)))?;
-            (total, submissions)
+            .await?
+        };
+        (total, submissions)
+    } else {
+        let total: i64 = if let Some(cid) = q.contest_id {
+            sqlx::query_scalar!(
+                "SELECT COUNT(*) FROM submissions WHERE problem_id = $1 AND user_id = $2 AND contest_id = $3",
+                problem_id,
+                claims.sub,
+                cid
+            )
+            .fetch_one(&state.pool)
+            .await?
+            .unwrap_or(0)
         } else {
-            let total: i64 = sqlx::query_scalar!(
+            sqlx::query_scalar!(
                 "SELECT COUNT(*) FROM submissions WHERE problem_id = $1 AND user_id = $2",
                 problem_id,
                 claims.sub
             )
             .fetch_one(&state.pool)
-            .await
-            .map_err(|e| Error::msg(format!("database error: {}", e)))?
-            .unwrap_or(0);
-            let submissions = sqlx::query_as!(
+            .await?
+            .unwrap_or(0)
+        };
+
+        let submissions = if let Some(cid) = q.contest_id {
+            sqlx::query_as!(
+                SubmissionWithDetails,
+                r#"
+                SELECT s.id, s.user_id, s.problem_id, s.lang, 
+                    s.result as "result: SubmissionResult",
+                    s.time_consumption, s.mem_consumption, s.created_at,
+                    u.username, p.name as problem_name
+                FROM submissions s
+                JOIN users u ON s.user_id = u.id
+                JOIN problems p ON s.problem_id = p.id
+                WHERE s.problem_id = $1 AND s.user_id = $2 AND s.contest_id = $3
+                ORDER BY s.created_at DESC
+                LIMIT $4 OFFSET $5
+                "#,
+                problem_id,
+                claims.sub,
+                cid,
+                page_size,
+                offset
+            )
+            .fetch_all(&state.pool)
+            .await?
+        } else {
+            sqlx::query_as!(
                 SubmissionWithDetails,
                 r#"
                 SELECT s.id, s.user_id, s.problem_id, s.lang, 
@@ -1174,10 +1245,10 @@ async fn list_submissions(
                 offset
             )
             .fetch_all(&state.pool)
-            .await
-            .map_err(|e| Error::msg(format!("database error: {}", e)))?;
-            (total, submissions)
+            .await?
         };
+        (total, submissions)
+    };
 
     let submission_list: Vec<SubmissionListItem> = submissions
         .into_iter()
