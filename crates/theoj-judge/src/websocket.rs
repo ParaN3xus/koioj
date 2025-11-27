@@ -41,9 +41,19 @@ async fn connect_and_handle(url: &str, config: &Config) -> Result<()> {
 
     let executor = Arc::new(RwLock::new(JudgeExecutor::new(config.clone())));
 
+    let private_key = theoj_common::auth::load_private_key(&config.private_key_path)
+        .context("Failed to load private key")?;
+
+    let timestamp = chrono::Utc::now().timestamp();
+    let challenge = theoj_common::auth::create_challenge(&config.judge_id, timestamp);
+    let signature = theoj_common::auth::sign_message(&private_key, challenge)
+        .context("Failed to sign message")?;
+
     let register_msg = JudgeToApiMessage::Register(JudgeInfo {
         judge_id: config.judge_id.clone(),
         version: env!("CARGO_PKG_VERSION").to_string(),
+        timestamp,
+        signature,
     });
 
     // send register

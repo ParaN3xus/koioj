@@ -23,5 +23,6 @@ uuid.workspace = true
 sysinfo.workspace = true
 clap.workspace = true
 axum.workspace = true
+chrono.workspace = true
 
 theoj-common.workspace = true

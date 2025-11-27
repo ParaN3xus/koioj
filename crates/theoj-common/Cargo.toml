@@ -20,3 +20,5 @@ sqlx.workspace = true
 serde_json.workspace = true
 axum.workspace = true
 anyhow.workspace = true
+ssh-key.workspace = true
+shellexpand.workspace = true

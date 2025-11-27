@@ -55,6 +55,8 @@ sysinfo = "0.37.2"
 clap = { version = "4.5.53", features = ["derive"] }
 redis = { version = "0.32.7", features = ["tokio-comp", "connection-manager"] }
 axum-extra = { version = "0.12.2", features = ["form"] }
+ssh-key = { version = "0.6.7", features = ["ed25519", "rsa", "alloc", "ecdsa"] }
+shellexpand = "3.1.1"
 
 # our own crates
 theoj-common = { path = "crates/theoj-common" }

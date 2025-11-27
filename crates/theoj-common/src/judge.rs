@@ -5,6 +5,8 @@ use utoipa::ToSchema;
 pub struct JudgeInfo {
     pub judge_id: String,
     pub version: String,
+    pub timestamp: i64,
+    pub signature: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

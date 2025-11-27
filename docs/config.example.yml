@@ -8,3 +8,5 @@ jwtSecret: "this-is-a-secret"
 jwtExpiry: [2592000, 0]  # 30d * 24h * 60m * 60s
 # adminPassword: "leave-commented-to-generate"
 dataDir: "./data"
+judgers: 
+  judge-001: "./local/data/keys/judge_key.pub"

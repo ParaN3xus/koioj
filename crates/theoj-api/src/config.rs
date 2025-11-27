@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::Duration;
 use serde::Deserialize;
 use theoj_common::utils::deserialize_log_level;
@@ -17,4 +19,5 @@ pub struct Config {
     pub jwt_expiry: Duration,
     pub admin_password: Option<String>,
     pub data_dir: String,
+    pub judgers: HashMap<String, String>,
 }

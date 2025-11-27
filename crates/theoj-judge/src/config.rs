@@ -16,6 +16,7 @@ pub struct Config {
     pub log_file: String,
     #[serde(deserialize_with = "deserialize_log_level")]
     pub log_level: Level,
+    pub private_key_path: String,
     pub judger_bin_path: PathBuf,
     pub rootfs_path: PathBuf,
     pub cgroup_base: PathBuf,

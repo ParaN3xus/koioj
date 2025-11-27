@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use axum::{
     Router,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
@@ -6,11 +7,11 @@ use axum::{
 use futures::{sink::SinkExt, stream::StreamExt};
 use rand::Rng;
 use std::{sync::Arc, time::Instant};
-use theoj_common::bail;
 use theoj_common::judge::{
     ApiToJudgeMessage, JudgeInfo, JudgeLoad, JudgeTask, JudgeToApiMessage, SubmissionResult,
     TestCaseJudgeResult,
 };
+use theoj_common::{bail, error::Context};
 use tokio::sync::{RwLock, mpsc};
 
 use crate::{AppState, Result, State, error::Error};
@@ -166,14 +167,13 @@ async fn handle_socket(socket: WebSocket, state: State) {
         _ = &mut recv_task => send_task.abort(),
     }
 }
-
 async fn handle_judge_message(
     text: &str,
     state: &State,
     judge_id: &mut Option<String>,
     registered: &mut bool,
     tx: &mpsc::UnboundedSender<ApiToJudgeMessage>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let msg: JudgeToApiMessage = serde_json::from_str(text)?;
 
     match msg {
@@ -183,8 +183,32 @@ async fn handle_judge_message(
                 return Ok(());
             }
 
+            let key_path = state
+                .config
+                .judgers
+                .get(&info.judge_id)
+                .ok_or_else(|| Error::anyhow(anyhow!("Unknown judge_id: {}", info.judge_id)))?;
+
+            let public_key = theoj_common::auth::load_public_key(&key_path)
+                .context("Failed to load public key")?;
+
+            let challenge = theoj_common::auth::create_challenge(&info.judge_id, info.timestamp);
+
+            let sig_for_verify = info.signature.clone();
+            theoj_common::auth::verify_signature(&public_key, challenge.as_bytes(), sig_for_verify)
+                .context("Signature verification failed")?;
+
+            let now = chrono::Utc::now().timestamp();
+            let time_diff = (now - info.timestamp).abs();
+            if time_diff > 60 {
+                return Err(Error::anyhow(anyhow!(
+                    "Timestamp too old or too new: {} seconds difference",
+                    time_diff
+                )));
+            }
+
             tracing::info!(
-                "Judge {} registered, version: {}",
+                "Judge {} registered and verified, version: {}",
                 info.judge_id,
                 info.version
             );
@@ -206,6 +230,7 @@ async fn handle_judge_message(
             *judge_id = Some(info.judge_id);
             *registered = true;
         }
+
         JudgeToApiMessage::Ping(load) => {
             if !*registered {
                 tracing::warn!("Received ping from unregistered judge");

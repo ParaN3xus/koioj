@@ -38,6 +38,8 @@ rand.workspace = true
 futures.workspace = true
 redis.workspace = true
 axum-extra.workspace = true
+ssh-key.workspace = true
+shellexpand.workspace = true
 
 theoj-web = { path = "../theoj-web", optional = true, default-features = false }
 theoj-common.workspace = true
