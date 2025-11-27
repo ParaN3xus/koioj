@@ -8,6 +8,7 @@ use axum::{
     http::StatusCode,
     middleware,
 };
+use axum_extra::extract::Form;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
@@ -843,7 +844,7 @@ pub(crate) struct GetOverallRankingResponse {
     rankings: Vec<OverallRankingItem>,
 }
 
-#[derive(Deserialize, IntoParams)]
+#[derive(Deserialize, IntoParams, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetOverallRankingQuery {
     contest_ids: Vec<i32>,
@@ -862,7 +863,7 @@ pub(crate) struct GetOverallRankingQuery {
 async fn get_overall_ranking(
     state: State,
     claims: Extension<Claims>,
-    Query(query): Query<GetOverallRankingQuery>,
+    Form(query): Form<GetOverallRankingQuery>,
 ) -> Result<Json<GetOverallRankingResponse>> {
     check_permission(
         &state.pool,
