@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import ContestStatusBadge from "@/components/Badges/ContestStatusBadge.vue";
+import ContestRanking from "@/components/ContestRanking.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
@@ -11,14 +12,8 @@ import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
-import type {
-  GetTrainingPlanResponse,
-} from "@/theoj-api";
-import {
-  TrainingPlanService,
-  UserRole,
-  UserService,
-} from "@/theoj-api";
+import type { GetTrainingPlanResponse } from "@/theoj-api";
+import { TrainingPlanService, UserRole, UserService } from "@/theoj-api";
 import { formatDateTime } from "@/utils.mjs";
 
 const route = useRoute();
@@ -32,12 +27,17 @@ const trainingPlanId = computed(() => route.params.id as string);
 const isLoading = ref(true);
 const trainingPlanData = ref<GetTrainingPlanResponse | null>(null);
 const currentUserRole = ref<UserRole | null>(null);
+const activeTab = ref<"contests" | "ranking">("contests");
 
 const isAdminOrTeacher = computed(() => {
   return (
     currentUserRole.value === UserRole.ADMIN ||
     currentUserRole.value === UserRole.TEACHER
   );
+});
+
+const contestIds = computed(() => {
+  return trainingPlanData.value?.contests.map((c) => c.contestId) || [];
 });
 
 const { open: handleDeleteTrainingPlan, close: closeDeleteTrainingPlanModal } =
@@ -139,40 +139,65 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Problems & Ranking Card -->
+      <!-- Contests & Ranking Card with Tabs -->
       <div class="card bg-base-100 shadow-xl mt-6">
         <div class="card-body">
-          <div class="overflow-x-auto">
-            <table class="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Begin Time</th>
-                  <th>End Time</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="contest in trainingPlanData.contests" :key="contest.contestId">
-                  <td>
-                    <div class="flex items-center gap-2">
-                      <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="link">
-                        {{ contest.name }}
-                      </EntityLink>
-                    </div>
-                  </td>
-                  <td>{{ formatDateTime(contest.beginTime) }}</td>
-                  <td>{{ formatDateTime(contest.endTime) }}</td>
-                  <td>
-                    <ContestStatusBadge :begin-time="contest.beginTime" :end-time="contest.endTime" />
-                  </td>
-                  <td class="text-right">
-                    <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="button" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Tabs -->
+          <div role="tablist" class="tabs tabs-bordered">
+            <a role="tab" class="tab"
+              :class="['inline-flex items-center gap-1', { 'tab-active': activeTab === 'contests' }]"
+              @click="activeTab = 'contests'">
+              <Icon icon="fa6-solid:list" />
+              Contests
+            </a>
+            <a role="tab" class="tab"
+              :class="['inline-flex items-center gap-1', { 'tab-active': activeTab === 'ranking' }]"
+              @click="activeTab = 'ranking'">
+              <Icon icon="fa6-solid:ranking-star" />
+              Ranking
+            </a>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="mt-4">
+            <!-- Contests Tab -->
+            <div v-show="activeTab === 'contests'" class="overflow-x-auto">
+              <table class="table table-zebra">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Begin Time</th>
+                    <th>End Time</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="contest in trainingPlanData.contests" :key="contest.contestId">
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="link">
+                          {{ contest.name }}
+                        </EntityLink>
+                      </div>
+                    </td>
+                    <td>{{ formatDateTime(contest.beginTime) }}</td>
+                    <td>{{ formatDateTime(contest.endTime) }}</td>
+                    <td>
+                      <ContestStatusBadge :begin-time="contest.beginTime" :end-time="contest.endTime" />
+                    </td>
+                    <td class="text-right">
+                      <EntityLink entity-type="contest" :entity-id="contest.contestId" display-type="button" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Ranking Tab -->
+            <div v-show="activeTab === 'ranking'">
+              <ContestRanking :contest-ids="contestIds" />
+            </div>
           </div>
         </div>
       </div>

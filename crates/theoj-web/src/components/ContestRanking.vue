@@ -29,7 +29,7 @@ const contestIdsArray = computed(() =>
   Array.isArray(props.contestIds) ? props.contestIds : [props.contestIds],
 );
 
-const isMultiContest = computed(() => contestIdsArray.value.length > 1);
+const isMultiContest = computed(() => Array.isArray(props.contestIds));
 
 const getProblemCellStyle = (attempts: number, accepted: boolean) => {
   if (!accepted) {
@@ -55,6 +55,7 @@ const loadRankingData = async () => {
     isLoading.value = true;
 
     if (isMultiContest.value) {
+      console.log(contestIdsArray.value)
       const response = await ContestService.getOverallRanking(
         contestIdsArray.value,
       );
