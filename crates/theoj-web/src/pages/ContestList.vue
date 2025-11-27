@@ -110,10 +110,16 @@ const getContestTypeColor = (type: ContestType) => {
             Contests
           </h2>
 
-          <button v-if="canManageContests" class="btn btn-primary" @click="handleAddContest">
-            <Icon icon="fa6-solid:plus" width="16" />
-            Add Contest
-          </button>
+          <div class="flex gap-4">
+            <RouterLink :to="routeMap.overallRanking" class="btn btn-secondary">
+              <Icon icon="fa6-solid:ranking-star" width="16" />
+              Overall Ranking
+            </RouterLink>
+            <button v-if="canManageContests" class="btn btn-primary" @click="handleAddContest">
+              <Icon icon="fa6-solid:plus" width="16" />
+              Add Contest
+            </button>
+          </div>
         </div>
 
         <!-- Filter -->

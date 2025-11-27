@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref, watch } from "vue";
 import EntityLink from "@/components/EntityLink.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";

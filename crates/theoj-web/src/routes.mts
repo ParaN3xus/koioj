@@ -8,6 +8,7 @@ import EditTrainingPlan from "./pages/EditTrainingPlan.vue";
 import Index from "./pages/Index.vue";
 import Login from "./pages/Login.vue";
 import NotFound from "./pages/NotFound.vue";
+import OverallRanking from "./pages/OverallRanking.vue";
 import Problem from "./pages/Problem.vue";
 import ProblemList from "./pages/ProblemList.vue";
 import Profile from "./pages/Profile.vue";
@@ -141,6 +142,11 @@ export const routeMap = createRoutes({
     path: "/contest/:contestId/problem/:problemId/submission/:submissionId",
     component: Submission,
     title: "Submission - TheOJ",
+  },
+  overallRanking: {
+    path: "/contest/overall-ranking",
+    component: OverallRanking,
+    title: "OverallRanking - TheOJ",
   },
   trainingPlanList: {
     path: "/training",
