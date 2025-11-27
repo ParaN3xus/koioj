@@ -4,12 +4,13 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
-import { useContestPasswordPrompt } from "@/composables/useContestPasswordPrompt.mjs";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import {
   ContestService,
   type GetContestResponse,
+  JudgeService,
+  Language,
   ProblemService,
   type SubmitRequest,
 } from "@/theoj-api";
@@ -34,28 +35,59 @@ const contestId = computed(() => parseIntOrNull(route.params.contestId));
 const isContestMode = computed(() => !!contestId.value);
 
 const code = ref<string>("");
-const lang = ref<string>("cpp");
+const lang = ref<Language>();
 const isSubmitting = ref<boolean>(false);
 const problemName = ref<string>("");
 const contestData = ref<GetContestResponse | null>(null);
+const supportedLanguages = ref<Language[]>([]);
 
-const languages = [
-  { value: "cpp", label: "C++" },
-  { value: "c", label: "C" },
-  { value: "java", label: "Java" },
-  { value: "python", label: "Python" },
-];
+// Language display name mapping
+const languageLabels: Record<Language, string> = {
+  [Language.C]: "C",
+  [Language.CPP]: "C++",
+  [Language.JAVA]: "Java",
+  [Language.PYTHON]: "Python",
+  [Language.GO]: "Go",
+  [Language.RUST]: "Rust",
+  [Language.JAVASCRIPT]: "JavaScript",
+  [Language.TYPESCRIPT]: "TypeScript",
+  [Language.CSHARP]: "C#",
+  [Language.PHP]: "PHP",
+  [Language.RUBY]: "Ruby",
+  [Language.SWIFT]: "Swift",
+  [Language.KOTLIN]: "Kotlin",
+  [Language.SCALA]: "Scala",
+  [Language.HASKELL]: "Haskell",
+  [Language.LUA]: "Lua",
+  [Language.PERL]: "Perl",
+  [Language.R]: "R",
+  [Language.DART]: "Dart",
+  [Language.OBJECTIVEC]: "Objective-C",
+};
 
-const { promptForPassword } = useContestPasswordPrompt({
-  contestId: Number(contestId.value),
-  onPasswordSubmit: async (password: string) => {
-    if (!contestId.value) {
-      toast.error("invalid contestId");
-      return;
+const languages = computed(() =>
+  supportedLanguages.value.map((langValue) => ({
+    value: langValue,
+    label: languageLabels[langValue] || langValue,
+  })),
+);
+
+const loadSupportedLanguages = async () => {
+  try {
+    const response = await JudgeService.getSupportedLanguages();
+    supportedLanguages.value = response.languages;
+
+    // Set default language if current selection is not supported
+    if (supportedLanguages.value.length > 0 && (!lang.value || !supportedLanguages.value.includes(lang.value))) {
+      if (!supportedLanguages.value[0]) {
+        throw Error("There's no supported languages!")
+      }
+      lang.value = supportedLanguages.value[0];
     }
-    await loadProblemAndContestData(password);
-  },
-});
+  } catch (e) {
+    handleApiError(e);
+  }
+};
 
 const loadProblemAndContestData = async (password?: string) => {
   try {
@@ -89,7 +121,7 @@ const loadProblemAndContestData = async (password?: string) => {
 };
 
 onMounted(async () => {
-  await loadProblemAndContestData();
+  await Promise.all([loadSupportedLanguages(), loadProblemAndContestData()]);
 });
 
 const handleSubmit = async () => {
@@ -101,6 +133,9 @@ const handleSubmit = async () => {
   isSubmitting.value = true;
 
   try {
+    if (!lang.value) {
+      throw new Error("You must select a lang!")
+    }
     const requestBody: SubmitRequest = {
       code: code.value,
       lang: lang.value,
@@ -139,7 +174,6 @@ const handleSubmit = async () => {
 };
 </script>
 
-
 <template>
   <div class="container mx-auto max-w-6xl">
     <div class="card bg-base-100 shadow-xl">
@@ -164,8 +198,6 @@ const handleSubmit = async () => {
             </template>
           </h2>
         </div>
-
-
 
         <div class="form-control w-full mb-4">
           <label class="label">

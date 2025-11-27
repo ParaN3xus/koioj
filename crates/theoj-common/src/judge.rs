@@ -15,6 +15,19 @@ pub enum Language {
     Go,
     Rust,
     JavaScript,
+    TypeScript,
+    CSharp,
+    Php,
+    Ruby,
+    Swift,
+    Kotlin,
+    Scala,
+    Haskell,
+    Lua,
+    Perl,
+    R,
+    Dart,
+    ObjectiveC,
 }
 
 impl fmt::Display for Language {
