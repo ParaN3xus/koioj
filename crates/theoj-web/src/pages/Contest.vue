@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import ProblemStatusBadge from "@/components/Badges/ProblemStatusBadge.vue";
+import ContestRanking from "@/components/ContestRanking.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
@@ -14,14 +15,9 @@ import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 import type {
-  GetContestRankingResponse,
   GetContestResponse,
 } from "@/theoj-api";
-import {
-  ContestService,
-  UserRole,
-  UserService,
-} from "@/theoj-api";
+import { ContestService, UserRole, UserService } from "@/theoj-api";
 import { parseIntOrNull } from "@/utils.mjs";
 
 const route = useRoute();
@@ -37,7 +33,6 @@ const isLoading = ref(true);
 const contestData = ref<GetContestResponse | null>(null);
 const currentUserRole = ref<UserRole | null>(null);
 const activeTab = ref<"problems" | "ranking">("problems");
-const rankingData = ref<GetContestRankingResponse | null>(null);
 
 const isAdminOrTeacher = computed(() => {
   return (
@@ -136,22 +131,6 @@ const loadContestData = async (id: number, password?: string) => {
   }
 };
 
-const loadRankingData = async () => {
-  if (!contestId.value) return;
-
-  try {
-    const storedPassword = contestPasswordStore.getPassword(
-      Number(contestId.value),
-    );
-    const response = await ContestService.getContestRanking(
-      contestId.value,
-      storedPassword || null,
-    );
-    rankingData.value = response;
-  } catch (e) {
-    handleApiError(e);
-  }
-};
 
 const handleJoinContest = async () => {
   if (!contestId.value) return;
@@ -177,9 +156,6 @@ const handleEditContest = () => {
 
 const switchTab = async (tab: "problems" | "ranking") => {
   activeTab.value = tab;
-  if (tab === "ranking" && !rankingData.value) {
-    await loadRankingData();
-  }
 };
 
 onMounted(async () => {
@@ -195,7 +171,7 @@ onMounted(async () => {
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else-if="contestData" class="space-y-8">
+    <div v-else-if="contestData">
       <!-- Contest Info Card -->
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -245,7 +221,7 @@ onMounted(async () => {
       </div>
 
       <!-- Problems & Ranking Card -->
-      <div class="card bg-base-100 shadow-xl">
+      <div class="card bg-base-100 shadow-xl mt-6">
         <div class="card-body">
           <!-- Tabs -->
           <div role="tablist" class="tabs tabs-bordered">
@@ -294,48 +270,7 @@ onMounted(async () => {
 
           <!-- Ranking Tab -->
           <div v-if="activeTab === 'ranking'" class="mt-4">
-            <div v-if="!rankingData" class="flex justify-center py-8">
-              <span class="loading loading-spinner loading-lg"></span>
-            </div>
-            <div v-else class="overflow-x-auto">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>User</th>
-                    <th>Solved</th>
-                    <th>Penalty</th>
-                    <th v-for="(_, index) in contestData.problemIds" :key="index">
-                      {{ String.fromCharCode(65 + index) }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in rankingData.rankings" :key="item.userId">
-                    <td>{{ index + 1 }}</td>
-                    <td>
-                      <EntityLink entity-type="user" :entity-id="item.userId">
-                        {{ item.username }}
-                      </EntityLink>
-                    </td>
-                    <td>{{ item.solvedCount }}</td>
-                    <td>{{ item.totalPenalty }}</td>
-                    <td v-for="result in item.problemResults" :key="result.problemId">
-                      <!--TODO: do these icon need "inline-flex items-center"?-->
-                      <div v-if="result.accepted" class="text-success text-center">
-                        <Icon icon="fa6-solid:check" class="text-xl" />
-                        <div class="text-xs">{{ result.attempts }}</div>
-                      </div>
-                      <div v-else-if="result.attempts > 0" class="text-error text-center">
-                        <Icon icon="fa6-solid:xmark" class="text-xl" />
-                        <div class="text-xs">{{ result.attempts }}</div>
-                      </div>
-                      <div v-else class="text-center opacity-30">-</div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <ContestRanking :contest-ids="contestId" :problem-ids="contestData.problemIds" />
           </div>
         </div>
       </div>
