@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
+import { sourceRepo } from "@/utils.mjs";
 
 const currentYear = new Date().getFullYear();
 const siteTitle = "TheOJ";
@@ -13,7 +14,7 @@ const siteTitle = "TheOJ";
           <span class="text-sm md:text-base font-bold">{{ siteTitle }}</span>
           <span class="text-xs md:text-sm text-base-content/60">
             © {{ currentYear }} {{ siteTitle }}. Licensed under <a class="link"
-              href="https://github.com/ParaN3xus/theoj/blob/main/LICENSE">GPL-3.0</a>
+              :href="`${sourceRepo}/blob/main/LICENSE`">GPL-3.0-only</a>
           </span>
         </div>
       </div>
