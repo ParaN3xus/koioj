@@ -74,6 +74,8 @@ const loadUserData = async () => {
     const profileResponse = await UserService.getProfile(profileUserId.value);
     profileData.value = profileResponse;
 
+    document.title = `Profile of ${profileResponse.username} - KoiOJ`;
+
     toast.success("Profile loaded!");
   } catch (e) {
     handleApiError(e);
