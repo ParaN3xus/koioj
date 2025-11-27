@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, PartialOrd, Ord,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     C,

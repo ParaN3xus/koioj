@@ -89,6 +89,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         training_plans::delete_training_plan,
         training_plans::set_participants,
         training_plans::set_contests,
+        judge::get_supported_languages
     ),
     modifiers(&JWTAuthAddon),
     tags(

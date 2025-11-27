@@ -1,11 +1,12 @@
 use anyhow::anyhow;
 use axum::{
-    Router,
+    Json, Router,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::Response,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Instant};
 use theoj_common::judge::{
     ApiToJudgeMessage, JudgeInfo, JudgeLoad, JudgeTask, JudgeToApiMessage, Language,
@@ -13,12 +14,15 @@ use theoj_common::judge::{
 };
 use theoj_common::{bail, error::Context};
 use tokio::sync::{RwLock, mpsc};
+use utoipa::ToSchema;
 
 use crate::{AppState, Result, State, error::Error};
 
 pub fn routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
-    Router::new().route("/ws", get(judge_ws))
+    Router::new()
+        .route("/ws", get(judge_ws))
+        .route("/supported-languages", get(get_supported_languages))
 }
 
 #[derive(Clone)]
@@ -380,4 +384,41 @@ async fn handle_judge_message(
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct GetSupportedLanguagesResponse {
+    languages: Vec<Language>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/judge/supported-languages",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, body = GetSupportedLanguagesResponse),
+    ),
+    tag = "judge"
+)]
+async fn get_supported_languages(state: State) -> Result<Json<GetSupportedLanguagesResponse>> {
+    let judges = state.judges.read().await;
+
+    let mut languages = std::collections::HashSet::new();
+
+    let now = tokio::time::Instant::now();
+    for (_id, conn) in judges.iter() {
+        let last_heartbeat = *conn.last_heartbeat.read().await;
+        // only count active judges (within 60 seconds)
+        if now.duration_since(last_heartbeat.into()).as_secs() < 60 {
+            for lang in &conn.info.languages {
+                languages.insert(lang.clone());
+            }
+        }
+    }
+
+    let mut languages: Vec<Language> = languages.into_iter().collect();
+    languages.sort();
+
+    Ok(Json(GetSupportedLanguagesResponse { languages }))
 }
