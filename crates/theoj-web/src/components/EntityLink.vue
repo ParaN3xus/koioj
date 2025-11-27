@@ -149,13 +149,13 @@ const fetchEntityName = async () => {
       case "submission":
       case "contestSubmission": {
         // These types don't have direct service methods, fallback to default
-        entityName.value = `${props.entityType} #${props.entityId}`;
+        entityName.value = `${props.entityId}`;
         break;
       }
     }
   } catch (error) {
     handleApiError(error);
-    entityName.value = `${props.entityType} #${props.entityId}`;
+    entityName.value = `#${props.entityId}`;
   } finally {
     isLoading.value = false;
   }
@@ -175,7 +175,7 @@ onMounted(() => {
   <RouterLink v-else :to="entityPath" :class="finalClass">
     <slot>
       <span v-if="isLoading">Loading...</span>
-      <span v-else>{{ entityName || `${entityType} #${entityId}` }}</span>
+      <span v-else>{{ entityName || `${entityId}` }}</span>
     </slot>
   </RouterLink>
 </template>

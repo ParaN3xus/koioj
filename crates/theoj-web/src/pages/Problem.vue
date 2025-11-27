@@ -3,12 +3,16 @@ import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
+import EntityLink from "@/components/EntityLink.vue";
+import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import { buildPath, routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 import {
   type GetProblemResponse,
+  type ListSubmissionsResponse,
   ProblemService,
   UserRole,
   UserService,
@@ -21,6 +25,10 @@ const router = useRouter();
 const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
+const submissions = ref<ListSubmissionsResponse | null>(null);
+const currentPage = ref(1);
+const pageSize = 10;
+const isLoadingSubmissions = ref(false);
 
 const problemId = computed(() => {
   // contest mode: /contest/:cid/problem/:pid
@@ -31,7 +39,7 @@ const problemId = computed(() => {
   return parseIntOrNull(route.params.id) ?? -1;
 });
 
-const contestId = computed(() => route.params.contestId as string | undefined);
+const contestId = computed(() => parseIntOrNull(route.params.contestId));
 const isContestMode = computed(() => !!contestId.value);
 
 const isLoading = ref(true);
@@ -65,30 +73,63 @@ const loadProblemData = async () => {
   }
 };
 
-onMounted(() => {
-  loadProblemData();
-});
-
 const handleEdit = () => {
   router.push(buildPath(routeMap.editProblem.path, { id: problemId.value }));
 };
 
 const handleSubmit = () => {
-  console.log(isContestMode.value)
+  console.log(isContestMode.value);
   if (isContestMode.value) {
     if (!contestId.value) {
-      toast.error("invalid contest!")
-      return
+      toast.error("invalid contest!");
+      return;
     }
-    router.push(buildPath(routeMap.contestSubmit.path, { contestId: contestId.value, problemId: problemId.value }));
-    return
+    router.push(
+      buildPath(routeMap.contestSubmit.path, {
+        contestId: contestId.value,
+        problemId: problemId.value,
+      }),
+    );
+    return;
   }
   router.push(buildPath(routeMap.submit.path, { id: problemId.value }));
 };
 
+const loadSubmissions = async (page: number = 1) => {
+  isLoadingSubmissions.value = true;
+  try {
+    const response = await ProblemService.listSubmissions(
+      problemId.value,
+      page,
+      pageSize,
+      contestId.value
+    );
+    submissions.value = response;
+    currentPage.value = page;
+  } catch (e) {
+    handleApiError(e);
+  } finally {
+    isLoadingSubmissions.value = false;
+  }
+};
+const totalPages = computed(() => {
+  if (!submissions.value) return 1;
+  return Math.ceil(submissions.value.total / pageSize);
+});
+
+const handlePageChange = (page: number) => {
+  loadSubmissions(page);
+};
+
+
 const handleSolutions = () => {
   router.push(buildPath(routeMap.soloutionList.path, { id: problemId.value }));
 };
+
+onMounted(async () => {
+  await loadProblemData();
+  await loadSubmissions(1);
+});
 </script>
 
 <template>
@@ -210,6 +251,67 @@ const handleSolutions = () => {
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl mt-6">
+      <div class="card-body">
+        <h2 class="card-title flex items-center gap-2 mb-4">
+          <Icon icon="fa7-solid:list" width="20" />
+          Recent Submissions
+        </h2>
+        <!-- Loading State -->
+        <div v-if="isLoadingSubmissions" class="flex items-center justify-center py-8">
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
+        <!-- Submissions Table -->
+        <div v-else-if="submissions && submissions.submissions.length > 0" class="space-y-4">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th v-if="isAdminOrTeacher">User</th>
+                  <th>Result</th>
+                  <th>Language</th>
+                  <th>Time</th>
+                  <th>Memory</th>
+                  <th>Submit Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="submission in submissions.submissions" :key="submission.submissionId">
+                  <td>
+                    <EntityLink :entity-type="isContestMode ? 'contestSubmission' : 'submission'" display-type="link"
+                      :entity-id="submission.submissionId" :problem-id="submission.problemId"
+                      :contest-id="contestId ?? undefined" />
+                  </td>
+                  <td v-if="isAdminOrTeacher">
+                    <EntityLink entity-type="user" display-type="link" :entity-id="submission.userId">
+                      {{ submission.username }}
+                    </EntityLink>
+                  </td>
+                  <td>
+                    <SubmissionResultBadge :result="submission.result" />
+                  </td>
+                  <td>{{ submission.lang }}</td>
+                  <td>{{ submission.timeConsumption ?? '-' }}ms</td>
+                  <td>{{ submission.memConsumption ?? '-' }}MB</td>
+                  <td>{{ new Date(submission.createdAt).toLocaleString() }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Pagination -->
+          <div class="flex justify-center mt-4">
+            <Pagination :current-page="currentPage" :last-page="totalPages" @page-change="handlePageChange" />
+          </div>
+        </div>
+        <!-- Empty State -->
+        <div v-else class="text-center py-8 text-base-content/70">
+          <Icon icon="fa7-solid:inbox" width="48" class="mx-auto mb-2 opacity-50" />
+          <p>No submissions yet</p>
         </div>
       </div>
     </div>
