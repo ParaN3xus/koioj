@@ -1,15 +1,15 @@
 {
-  "name": "theoj-web",
+  "name": "koioj-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "generate-openapi": "cargo run --bin --no-default-features --bin gen_openapi ./openapi.json && npx openapi-typescript-codegen -i ./openapi.json -o crates/theoj-web/src/theoj-api",
-    "watch-theoj-api": "watchexec -r -w \"crates/theoj-api/\" -w \"crates/theoj-common/\" \"cargo run --no-default-features --bin theoj-api\"",
-    "watch-theoj-judge": "watchexec -r -w \"crates/theoj-judge/\" -w \"crates/theoj-common/\" \"systemd-run --user --scope -p Delegate=yes -- cargo run --bin theoj-judge -- -c judge_config.yml serve\"",
-    "dev": "vite crates/theoj-web",
-    "build": "vue-tsc -b && vite build crates/theoj-web",
-    "preview": "vite preview crates/theoj-web"
+    "generate-openapi": "cargo run --bin --no-default-features --bin gen_openapi ./openapi.json && npx openapi-typescript-codegen -i ./openapi.json -o crates/koioj-web/src/koioj-api",
+    "watch-koioj-api": "watchexec -r -w \"crates/koioj-api/\" -w \"crates/koioj-common/\" \"cargo run --no-default-features --bin koioj-api\"",
+    "watch-koioj-judge": "watchexec -r -w \"crates/koioj-judge/\" -w \"crates/koioj-common/\" \"systemd-run --user --scope -p Delegate=yes -- cargo run --bin koioj-judge -- -c judge_config.yml serve\"",
+    "dev": "vite crates/koioj-web",
+    "build": "vue-tsc -b && vite build crates/koioj-web",
+    "preview": "vite preview crates/koioj-web"
   },
   "dependencies": {
     "@iconify-json/heroicons": "^1.2.3",

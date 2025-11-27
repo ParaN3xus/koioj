@@ -1,0 +1,50 @@
+[package]
+name = "koioj-api"
+description.workspace = true
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+dotenvy.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+axum.workspace = true
+tower-http.workspace = true
+uuid.workspace = true
+tower-layer.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+tracing.workspace = true
+tracing-serde.workspace = true
+serde_json.workspace = true
+tower.workspace = true
+utoipa.workspace = true
+utoipa-swagger-ui.workspace = true
+jsonwebtoken.workspace = true
+chrono.workspace = true
+argon2.workspace = true
+regex.workspace = true
+passwords.workspace = true
+mime_guess.workspace = true
+rand.workspace = true
+futures.workspace = true
+redis.workspace = true
+axum-extra.workspace = true
+ssh-key.workspace = true
+shellexpand.workspace = true
+
+koioj-web = { path = "../koioj-web", optional = true, default-features = false }
+koioj-common.workspace = true
+
+[features]
+default = ["embed-frontend"]
+
+embed-frontend = ["dep:koioj-web"]

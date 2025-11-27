@@ -5,8 +5,8 @@ import daisyui from "daisyui";
 
 export default {
   content: [
-    "./crates/theoj-web/index.html",
-    "./crates/theoj-web/src/**/*.{vue,js,ts,jsx,tsx}",
+    "./crates/koioj-web/index.html",
+    "./crates/koioj-web/src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {},

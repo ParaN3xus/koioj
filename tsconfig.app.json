@@ -15,14 +15,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./crates/theoj-web/src/*"
+        "./crates/koioj-web/src/*"
       ]
     }
   },
   "include": [
-    "crates/theoj-web/**/*.ts",
-    "crates/theoj-web/**/*.mts",
-    "crates/theoj-web/**/*.tsx",
-    "crates/theoj-web/**/*.vue"
+    "crates/koioj-web/**/*.ts",
+    "crates/koioj-web/**/*.mts",
+    "crates/koioj-web/**/*.tsx",
+    "crates/koioj-web/**/*.vue"
   ]
 }

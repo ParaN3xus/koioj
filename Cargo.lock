@@ -1282,6 +1282,91 @@ dependencies = [
 ]
 
 [[package]]
+name = "koioj-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "axum",
+ "axum-extra",
+ "chrono",
+ "dotenvy",
+ "futures",
+ "jsonwebtoken",
+ "koioj-common",
+ "koioj-web",
+ "mime_guess",
+ "passwords",
+ "rand 0.9.2",
+ "redis",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "shellexpand",
+ "sqlx",
+ "ssh-key",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tower-layer",
+ "tracing",
+ "tracing-appender",
+ "tracing-serde",
+ "tracing-subscriber",
+ "utoipa",
+ "utoipa-swagger-ui",
+ "uuid",
+]
+
+[[package]]
+name = "koioj-common"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "shellexpand",
+ "sqlx",
+ "ssh-key",
+ "tracing",
+ "tracing-appender",
+ "tracing-serde",
+ "tracing-subscriber",
+ "utoipa",
+]
+
+[[package]]
+name = "koioj-judge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "clap",
+ "futures",
+ "koioj-common",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sysinfo",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "koioj-web"
+version = "0.1.0"
+dependencies = [
+ "phf",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2633,91 +2718,6 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-io-kit",
  "windows",
-]
-
-[[package]]
-name = "theoj-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "argon2",
- "axum",
- "axum-extra",
- "chrono",
- "dotenvy",
- "futures",
- "jsonwebtoken",
- "mime_guess",
- "passwords",
- "rand 0.9.2",
- "redis",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "shellexpand",
- "sqlx",
- "ssh-key",
- "theoj-common",
- "theoj-web",
- "tokio",
- "tower",
- "tower-http",
- "tower-layer",
- "tracing",
- "tracing-appender",
- "tracing-serde",
- "tracing-subscriber",
- "utoipa",
- "utoipa-swagger-ui",
- "uuid",
-]
-
-[[package]]
-name = "theoj-common"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "serde",
- "serde_json",
- "serde_plain",
- "shellexpand",
- "sqlx",
- "ssh-key",
- "tracing",
- "tracing-appender",
- "tracing-serde",
- "tracing-subscriber",
- "utoipa",
-]
-
-[[package]]
-name = "theoj-judge"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "clap",
- "futures",
- "serde",
- "serde_json",
- "serde_yaml",
- "sysinfo",
- "theoj-common",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "theoj-web"
-version = "0.1.0"
-dependencies = [
- "phf",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 listen: "0.0.0.0:8080"
 maxWorkers: 16
-logFile: "theoj.log"
+logFile: "koioj.log"
 logLevel: "Debug"
 maxConnections: 1000
 maxFileSizeMb: 8

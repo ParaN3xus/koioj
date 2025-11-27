@@ -14,7 +14,7 @@ dist
 dist-ssr
 *.local
 openapi.json
-/crates/theoj-web/src/theoj-api
+/crates/koioj-web/src/koioj-api
 
 # Editor directories and files
 .vscode/*

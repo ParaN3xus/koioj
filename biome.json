@@ -9,7 +9,7 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!crates/theoj-web/src/theoj-api"
+			"!crates/koioj-web/src/koioj-api"
 		]
 	},
 	"formatter": {

@@ -1,0 +1,28 @@
+[package]
+name = "koioj-judge"
+description.workspace = true
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+sysinfo.workspace = true
+clap.workspace = true
+axum.workspace = true
+chrono.workspace = true
+
+koioj-common.workspace = true

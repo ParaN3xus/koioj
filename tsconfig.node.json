@@ -25,6 +25,6 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "crates/theoj-web/vite.config.ts"
+    "crates/koioj-web/vite.config.ts"
   ]
 }

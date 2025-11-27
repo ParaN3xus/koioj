@@ -5,8 +5,8 @@ version = "0.1.0"
 edition = "2024"
 readme = "README.md"
 license = "GPL-3.0-only"
-homepage = "https://github.com/ParaN3xus/theoj"
-repository = "https://github.com/ParaN3xus/theoj"
+homepage = "https://github.com/ParaN3xus/koioj"
+repository = "https://github.com/ParaN3xus/koioj"
 
 [workspace]
 resolver = "2"
@@ -60,7 +60,7 @@ shellexpand = "3.1.1"
 serde_plain = "1.0.2"
 
 # our own crates
-theoj-common = { path = "crates/theoj-common" }
-theoj-web = { path = "crates/theoj-web" }
-theoj-api = { path = "crates/theoj-api" }
-theoj-judge = { path = "crates/theoj-judge" }
+koioj-common = { path = "crates/koioj-common" }
+koioj-web = { path = "crates/koioj-web" }
+koioj-api = { path = "crates/koioj-api" }
+koioj-judge = { path = "crates/koioj-judge" }

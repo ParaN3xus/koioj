@@ -1,6 +1,6 @@
 judgeId: "judge-001"
 apiUrl: "http://localhost:8080"
-logFile: "theoj_judge.log"
+logFile: "koioj_judge.log"
 logLevel: "Debug"
 privateKeyPath: "./local/data/keys/judge_key"
 judgerBinPath: "./judger"
