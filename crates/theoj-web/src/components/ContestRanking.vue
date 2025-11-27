@@ -115,8 +115,7 @@ onMounted(loadRankingData);
             :style="getProblemCellStyle(result.attempts, result.accepted)">
             <div v-if="result.accepted" class="flex flex-col items-center font-bold">
               {{ `+${result.attempts - 1}` }}
-              <div v-if="result.acceptedTime" class="text-xs text-center font-normal
-">
+              <div v-if="result.acceptedTime" class="text-xs text-center font-normal">
                 {{ formatDateTime(result.acceptedTime).replace(", ", "\n") }}
               </div>
             </div>
