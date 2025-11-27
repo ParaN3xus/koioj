@@ -12,7 +12,8 @@ const siteTitle = "TheOJ";
         <div class="flex flex-col md:flex-row items-center gap-1 md:gap-4 text-center md:text-left">
           <span class="text-sm md:text-base font-bold">{{ siteTitle }}</span>
           <span class="text-xs md:text-sm text-base-content/60">
-            © {{ currentYear }} {{ siteTitle }}. All rights reserved.
+            © {{ currentYear }} {{ siteTitle }}. Licensed under <a class="link"
+              href="https://github.com/ParaN3xus/theoj/blob/main/LICENSE">GPL-3.0</a>
           </span>
         </div>
       </div>
