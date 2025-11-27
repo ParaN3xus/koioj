@@ -940,7 +940,7 @@ async fn get_overall_ranking(
         let user_id: i32 = user_entry.user_id;
 
         let participated_count = sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM contest_participants WHERE user_id = $1 AND contest_id = ANY($2)",
+            "SELECT COUNT(DISTINCT contest_id) FROM contest_participants WHERE user_id = $1 AND contest_id = ANY($2)",
             user_id,
             &contest_ids
         )
