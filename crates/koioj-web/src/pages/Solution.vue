@@ -52,7 +52,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto max-w-6xl p-4">
+  <div class="container mx-auto max-w-6xl">
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <!-- Loading State -->
