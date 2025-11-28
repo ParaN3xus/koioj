@@ -8,12 +8,12 @@ use axum::{
     http::StatusCode,
     middleware,
 };
-use axum_extra::extract::Form;
+use axum_extra::extract::Query as ExtraQuery;
 use chrono::{DateTime, Utc};
+use koioj_common::{bail, judge::SubmissionResult};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::sync::Arc;
-use koioj_common::{bail, judge::SubmissionResult};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::{
@@ -844,7 +844,7 @@ pub(crate) struct GetOverallRankingResponse {
     rankings: Vec<OverallRankingItem>,
 }
 
-#[derive(Deserialize, IntoParams, ToSchema)]
+#[derive(Deserialize, ToSchema, IntoParams)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetOverallRankingQuery {
     contest_ids: Vec<i32>,
@@ -863,7 +863,7 @@ pub(crate) struct GetOverallRankingQuery {
 async fn get_overall_ranking(
     state: State,
     claims: Extension<Claims>,
-    Form(query): Form<GetOverallRankingQuery>,
+    ExtraQuery(query): ExtraQuery<GetOverallRankingQuery>,
 ) -> Result<Json<GetOverallRankingResponse>> {
     check_permission(
         &state.pool,
