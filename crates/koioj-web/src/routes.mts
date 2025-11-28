@@ -47,7 +47,7 @@ export const routeMap = createRoutes({
   index: {
     path: "/",
     component: Index,
-    title: `${APP_NAME} - The Online Judge Platform`,
+    title: `${APP_NAME} - Online Judge Platform`,
   },
   login: {
     path: "/users/login",

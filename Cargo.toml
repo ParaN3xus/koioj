@@ -1,5 +1,5 @@
 [workspace.package]
-description = "the online judge"
+description = "Koi Online Judge"
 authors = ["ParaN3xus"]
 version = "0.1.0"
 edition = "2024"

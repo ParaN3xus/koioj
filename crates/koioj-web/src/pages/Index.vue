@@ -54,7 +54,7 @@ const features: FeatureCard[] = [
           Welcome to {{ APP_NAME }}
         </h1>
         <p class="text-xl text-base-content/70 mb-6">
-          The Online Judge Platform for Competitive Programming
+          Online Judge Platform for Competitive Programming
         </p>
         <div class="flex gap-4 justify-center">
           <RouterLink :to="routeMap.register.path" class="btn btn-primary btn-lg">
