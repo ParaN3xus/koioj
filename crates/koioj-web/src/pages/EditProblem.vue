@@ -304,11 +304,9 @@ const handleCancel = () => {
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="card-title text-2xl">
-            {{ pageTitle }}
-          </h2>
-        </div>
+        <h1 class="font-bold card-title">
+          {{ pageTitle }}
+        </h1>
 
         <!-- Loading State -->
         <div v-if="isLoading" class="flex items-center justify-center py-8">
@@ -326,7 +324,10 @@ const handleCancel = () => {
 
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Problem Name *</span>
+                <span class="label-text font-semibold">
+                  Problem Name
+                  <span class="text-error">*</span>
+                </span>
               </label>
               <input v-model="formData.name" type="text" placeholder="Enter problem name" class="input input-bordered"
                 required />
@@ -334,7 +335,10 @@ const handleCancel = () => {
 
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Status *</span>
+                <span class="label-text font-semibold">
+                  Status
+                  <span class="text-error">*</span>
+                </span>
               </label>
               <select v-model="formData.status" class="select select-bordered" required>
                 <option :value="ProblemStatus.HIDDEN">Hidden</option>
@@ -345,7 +349,10 @@ const handleCancel = () => {
             <div class="grid grid-cols-2 gap-4">
               <div class="form-control">
                 <label class="label">
-                  <span class="label-text">Time Limit (ms) *</span>
+                  <span class="label-text font-semibold">
+                    Time Limit (ms)
+                    <span class="text-error">*</span>
+                  </span>
                 </label>
                 <input v-model.number="formData.timeLimit" type="number" min="1" placeholder="1000"
                   class="input input-bordered" required />
@@ -353,7 +360,10 @@ const handleCancel = () => {
 
               <div class="form-control">
                 <label class="label">
-                  <span class="label-text">Memory Limit (MB) *</span>
+                  <span class="label-text font-semibold">
+                    Memory Limit (MB)
+                    <span class="text-error">*</span>
+                  </span>
                 </label>
                 <input v-model.number="formData.memLimit" type="number" min="1" placeholder="256"
                   class="input input-bordered" required />
@@ -363,7 +373,10 @@ const handleCancel = () => {
             <!-- Description with Preview -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Description *</span>
+                <span class="label-text font-semibold">
+                  Description
+                  <span class="text-error">*</span>
+                </span>
                 <label class="label cursor-pointer gap-2">
                   <span class="label-text-alt">Preview</span>
                   <input type="checkbox" v-model="showDescriptionPreview" class="toggle toggle-sm" />
@@ -377,7 +390,10 @@ const handleCancel = () => {
             <!-- Input Description with Preview -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Input Description *</span>
+                <span class="label-text font-semibold">
+                  Input Description
+                  <span class="text-error">*</span>
+                </span>
                 <label class="label cursor-pointer gap-2">
                   <span class="label-text-alt">Preview</span>
                   <input type="checkbox" v-model="showInputDescPreview" class="toggle toggle-sm" />
@@ -391,7 +407,10 @@ const handleCancel = () => {
             <!-- Output Description with Preview -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Output Description *</span>
+                <span class="label-text font-semibold">
+                  Output Description
+                  <span class="text-error">*</span>
+                </span>
                 <label class="label cursor-pointer gap-2">
                   <span class="label-text-alt">Preview</span>
                   <input type="checkbox" v-model="showOutputDescPreview" class="toggle toggle-sm" />
@@ -405,7 +424,10 @@ const handleCancel = () => {
             <!-- Note with Preview -->
             <div class="form-control">
               <label class="label">
-                <span class="label-text">Note</span>
+                <span class="label-text font-semibold">
+                  Note
+                  <span class="text-error">*</span>
+                </span>
                 <label class="label cursor-pointer gap-2">
                   <span class="label-text-alt">Preview</span>
                   <input type="checkbox" v-model="showNotePreview" class="toggle toggle-sm" />

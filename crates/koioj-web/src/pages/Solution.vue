@@ -2,6 +2,7 @@
 import { Icon } from "@iconify/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import EntityLink from "@/components/EntityLink.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
 import type { GetProblemResponse, GetSolutionResponse } from "@/koioj-api";
@@ -70,7 +71,9 @@ onMounted(() => {
             <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
               <div class="flex items-center gap-2">
                 <Icon icon="fa6-solid:user" class="w-4 h-4" />
-                <span class="font-semibold">{{ solution.authorName }}</span>
+                <EntityLink entity-type="user" :entity-id="solution.authorId">
+                  {{ solution.authorName }}
+                </EntityLink>
               </div>
               <div class="flex items-center gap-2">
                 <Icon icon="fa6-solid:calendar" class="w-4 h-4" />

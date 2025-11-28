@@ -276,9 +276,9 @@ onMounted(() => {
         </div>
 
         <template v-else>
-          <h2 class="card-title mb-4">
+          <h1 class="font-bold card-title">
             {{ isEditMode ? 'Edit Training Plan' : 'Create Training Plan' }}
-          </h2>
+          </h1>
 
           <form @submit.prevent="handleSubmit">
             <!-- Training Plan Name -->

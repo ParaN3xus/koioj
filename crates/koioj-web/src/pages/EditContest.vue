@@ -343,9 +343,9 @@ onMounted(() => {
         </div>
 
         <template v-else>
-          <h2 class="card-title mb-4">
+          <h1 class="font-bold card-title">
             {{ isEditMode ? 'Edit Contest' : 'Create Contest' }}
-          </h2>
+          </h1>
 
           <form @submit.prevent="handleSubmit">
             <!-- Contest Name -->

@@ -5,6 +5,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
+import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
+import { useModal } from "@/components/Modal/useModal.mjs";
 import Pagination from "@/components/Pagination.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import { useMarkdownRenderer } from "@/composables/useMarkdownRenderer.mts";
@@ -76,6 +78,29 @@ const loadProblemData = async () => {
 const handleEdit = () => {
   router.push(buildPath(routeMap.editProblem.path, { id: problemId.value }));
 };
+
+const { open: handleDelete, close: closeDeleteModal } = useModal({
+  component: ConfirmModal,
+  attrs: {
+    title: "Are you sure to delete this problem?",
+    reverseColors: true,
+    reverseOrder: true,
+    async onYes() {
+      try {
+        await ProblemService.deleteProblem(problemId.value);
+        toast.success("Problem deleted successfully!");
+        router.push(routeMap.problemList.path);
+      } catch (e) {
+        handleApiError(e);
+      }
+    },
+    onNo() { },
+  },
+  slots: {
+    default:
+      "<p>Are you sure you want to delete this problem? This action cannot be undone.</p>",
+  },
+});
 
 const handleSubmit = () => {
   console.log(isContestMode.value);
@@ -164,17 +189,21 @@ onMounted(async () => {
               </div>
             </div>
             <div class="flex gap-2">
-              <button v-if="isAdminOrTeacher" class="btn btn-sm w-28" @click="handleEdit">
-                <Icon icon="fa7-solid:pen-to-square" width="14" />
-                Edit
-              </button>
-              <button class="btn btn-sm w-28" @click="handleSolutions">
+              <button class="btn w-30" @click="handleSolutions">
                 <Icon icon="fa7-solid:lightbulb" width="14" />
                 Solutions
               </button>
-              <button class="btn btn-sm btn-primary w-28" @click="handleSubmit">
+              <button class="btn btn-primary w-28" @click="handleSubmit">
                 <Icon icon="fa7-solid:code" width="14" />
                 Submit
+              </button>
+              <button v-if="isAdminOrTeacher" @click="handleEdit" class="btn btn-warning">
+                <Icon icon="fa6-solid:pen-to-square" />
+                Edit
+              </button>
+              <button v-if="isAdminOrTeacher" @click="handleDelete" class="btn btn-error">
+                <Icon icon="fa6-solid:trash" />
+                Delete
               </button>
             </div>
           </div>

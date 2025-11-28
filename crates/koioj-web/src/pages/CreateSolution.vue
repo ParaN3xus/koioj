@@ -67,12 +67,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto max-w-6xl p-4">
+  <div class="container mx-auto max-w-6xl">
     <div class="card bg-base-100 shadow-xl">
       <div class="card-body">
         <!-- Header -->
-        <h1 class="text-3xl font-bold">Create Solution</h1>
-
+        <h1 class="font-bold card-title">
+          Create Solution
+        </h1>
         <!-- Loading State -->
         <div v-if="loading" class="flex justify-center py-12">
           <span class="loading loading-spinner loading-lg"></span>

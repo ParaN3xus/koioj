@@ -116,7 +116,7 @@ onMounted(async () => {
         <div class="card-body">
           <div class="flex justify-between items-start">
             <div class="flex-1">
-              <h2 class="card-title text-3xl mb-2">
+              <h2 class="card-title text-3xl mb-2 font-bold">
                 {{ trainingPlanData.name }}
               </h2>
             </div>

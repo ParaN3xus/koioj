@@ -176,9 +176,8 @@ onMounted(async () => {
         <div class="card-body">
           <div class="flex justify-between items-start">
             <div class="flex-1">
-              <h2 class="card-title text-3xl mb-2">
+              <h2 class="card-title text-3xl mb-2 font-bold">
                 {{ contestData.name }}
-
               </h2>
               <div class="text-sm opacity-70 space-y-1">
                 <p class="inline-flex items-center gap-1">
