@@ -97,11 +97,14 @@ impl AppState {
 
         tracing::warn!("admin account doesn't exist, creating");
 
-        let password_hash = hash_password(self.config.admin_password.clone().unwrap_or({
-            let password = generate_strong_password();
-            tracing::warn!("admin password doesn't exist in the given config, using {password}");
-            password
-        }))?;
+        let password_hash =
+            hash_password(self.config.admin_password.clone().unwrap_or_else(|| {
+                let password = generate_strong_password();
+                tracing::warn!(
+                    "admin password doesn't exist in the given config, using {password}"
+                );
+                password
+            }))?;
 
         let _user_id: i32 = sqlx::query_scalar!(
             r#"
