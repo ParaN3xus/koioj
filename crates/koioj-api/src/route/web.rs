@@ -22,7 +22,7 @@ async fn serve_frontend(uri: Uri) -> Result<Response, StatusCode> {
         let html = String::from_utf8_lossy(content);
         let replaced = html.replace(
             r#"window.API_ROOT = "{{ api_root }}";"#,
-            r#"window.API_ROOT = "/api";"#,
+            r#"window.API_ROOT = window.location.origin;"#,
         );
 
         return Ok(Response::builder()
