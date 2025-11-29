@@ -5,7 +5,7 @@ use koioj_common::utils::deserialize_log_level;
 use serde::Deserialize;
 use tracing::Level;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub listen: String,

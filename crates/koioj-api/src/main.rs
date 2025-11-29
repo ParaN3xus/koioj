@@ -18,5 +18,7 @@ fn main() -> Result<()> {
 
     let _log_guard = init_log(&config.log_file, config.log_level);
 
+    tracing::debug!("starting api with config {:?}", config);
+
     runtime.block_on(start_api(config))
 }
