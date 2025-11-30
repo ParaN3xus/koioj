@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use axum::{
     Extension, Json, Router,
     extract::{Path, Query},
@@ -44,7 +45,11 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
                 .route("/", post(create_problem))
                 .route("/{problem_id}", put(put_problem))
                 .route("/{problem_id}", delete(delete_problem))
-                .route("/{problem_id}/test-cases", post(add_test_cases))
+                .merge(
+                    Router::new()
+                        .route("/{problem_id}/test-cases", post(add_test_cases))
+                        .layer(DefaultBodyLimit::max(256 * 1024 * 1024)),
+                )
                 .route("/{problem_id}/test-cases", get(get_test_cases))
                 .route("/{problem_id}/solutions", post(create_solution))
                 .route(
