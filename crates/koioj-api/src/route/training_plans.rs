@@ -303,7 +303,7 @@ async fn list_training_plans(
                 WHERE tpc2.plan_id = tp.id AND c.end_time > $1
             )
             GROUP BY tp.id, tp.creator_id, tp.name
-            ORDER BY tp.created_at DESC
+            ORDER BY tp.created_at ASC
             LIMIT $2 OFFSET $3
             "#,
             Some(end_after),
@@ -321,7 +321,7 @@ async fn list_training_plans(
             LEFT JOIN training_plan_contests tpc ON tp.id = tpc.plan_id
             WHERE tp.id != 0
             GROUP BY tp.id, tp.creator_id, tp.name
-            ORDER BY tp.created_at DESC
+            ORDER BY tp.created_at ASC
             LIMIT $1 OFFSET $2
             "#,
             None,
