@@ -118,7 +118,6 @@ const { open: handleDelete, close: closeDeleteModal } = useModal({
 });
 
 const handleSubmit = () => {
-  console.log(isContestMode.value);
   if (isContestMode.value) {
     if (!contestId.value) {
       toast.error("invalid contest!");

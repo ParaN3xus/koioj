@@ -54,21 +54,6 @@ const handleAddSolution = () => {
   router.push(buildPath(routeMap.createSolution.path, { id: problemId }));
 };
 
-const handleViewSolution = (solutionId: string) => {
-  console.log(
-    buildPath(routeMap.solution.path, {
-      problemId: problemId,
-      solutionId: solutionId,
-    }),
-  );
-  router.push(
-    buildPath(routeMap.solution.path, {
-      problemId: problemId,
-      solutionId: solutionId,
-    }),
-  );
-};
-
 onMounted(() => {
   fetchData();
 });

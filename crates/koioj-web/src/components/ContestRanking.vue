@@ -53,7 +53,6 @@ const loadRankingData = async () => {
     isLoading.value = true;
 
     if (isMultiContest.value) {
-      console.log(contestIdsArray.value);
       const response = await ContestService.getOverallRanking(
         contestIdsArray.value,
       );
