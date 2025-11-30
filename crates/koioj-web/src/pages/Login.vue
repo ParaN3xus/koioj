@@ -47,10 +47,10 @@ onMounted(() => {
       <form @submit.prevent="handleLogin">
         <div class="form-control mb-4">
           <label class="label">
-            <span class="label-text">Email or Phone number</span>
+            <span class="label-text">Username, Email or Phone Number</span>
           </label>
-          <input v-model="identifier" type="text" autocomplete="email" placeholder="Enter your username or email"
-            class="input input-bordered w-full" required />
+          <input v-model="identifier" type="text" autocomplete="username"
+            placeholder="Enter your username, email or phone number" class="input input-bordered w-full" required />
         </div>
 
         <div class="form-control mb-6">
