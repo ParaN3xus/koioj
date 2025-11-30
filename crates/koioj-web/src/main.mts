@@ -6,6 +6,7 @@ import App from "./App.vue";
 import { routes } from "./routes.mts";
 
 import "./style.css";
+import "katex/dist/katex.min.css";
 import "vue-toastification/dist/index.css";
 import { APP_NAME } from "./utils.mts";
 

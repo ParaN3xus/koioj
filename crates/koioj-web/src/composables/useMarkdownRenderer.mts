@@ -1,6 +1,5 @@
-import markdownItKatex from "@vscode/markdown-it-katex";
+import { katex } from "@mdit/plugin-katex";
 import MarkdownIt from "markdown-it";
-import "katex/dist/katex.min.css";
 
 let md: MarkdownIt | null = null;
 
@@ -13,16 +12,15 @@ export function useMarkdownRenderer() {
     });
 
     // katex
-    md.use(markdownItKatex, {
-      throwOnError: false,
-      errorColor: "#cc0000",
+    md.use(katex, {
+      allowInlineWithSpace: true
     });
 
     // minimal heading = h3
     md.renderer.rules.heading_open = (tokens, idx) => {
       const token = tokens[idx];
       if (!token) {
-        return `ERR null token`
+        return `ERR null token`;
       }
       let level = parseInt(token.tag.substring(1), 10);
       if (level < 3) {
@@ -34,7 +32,7 @@ export function useMarkdownRenderer() {
     md.renderer.rules.heading_close = (tokens, idx) => {
       const token = tokens[idx];
       if (!token) {
-        return `ERR null token`
+        return `ERR null token`;
       }
       let level = parseInt(token.tag.substring(1), 10);
       if (level < 3) {
@@ -46,7 +44,7 @@ export function useMarkdownRenderer() {
 
   const renderMarkdown = (text: string): string => {
     if (!md) {
-      return `ERR null md render`
+      return `ERR null md render`;
     }
     return md.render(text);
   };
