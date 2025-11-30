@@ -65,7 +65,7 @@ pub async fn get_contest_ranking_cached(
 
     // Get sorted user ids
     let user_ids: Vec<String> = redis_conn
-        .zrange(&ranking_key(contest.id), 0, -1)
+        .zrevrange(&ranking_key(contest.id), 0, -1)
         .await
         .map_err(|e| Error::msg(format!("redis error: {}", e)))?;
 
