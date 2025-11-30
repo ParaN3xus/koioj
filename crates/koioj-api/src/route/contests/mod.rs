@@ -845,6 +845,7 @@ pub(crate) struct GetOverallRankingResponse {
 }
 
 #[derive(Deserialize, ToSchema, IntoParams)]
+#[into_params(style = Form, parameter_in = Query)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetOverallRankingQuery {
     contest_ids: Vec<i32>,
