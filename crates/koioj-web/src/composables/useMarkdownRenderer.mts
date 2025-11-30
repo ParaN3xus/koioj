@@ -1,19 +1,28 @@
 import { katex } from "@mdit/plugin-katex";
+import hljs from "highlight.js";
 import MarkdownIt from "markdown-it";
+import "highlight.js/styles/github-dark.css";
 
 let md: MarkdownIt | null = null;
 
 export function useMarkdownRenderer() {
   if (!md) {
     md = new MarkdownIt({
-      html: false, // no raw HTML
-      breaks: true, // \n to <br>
-      linkify: true, // URL -> link
+      html: false,
+      breaks: true,
+      linkify: true,
+      highlight: (str, lang) => {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return `<pre><code class="hljs language-${lang}">${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+          } catch (__) { }
+        }
+        return `<pre><code class="hljs">${md?.utils.escapeHtml(str)}</code></pre>`;
+      },
     });
 
-    // katex
     md.use(katex, {
-      allowInlineWithSpace: true
+      allowInlineWithSpace: true,
     });
 
     // minimal heading = h3

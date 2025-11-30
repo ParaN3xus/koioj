@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
+import CodeBlock from "@/components/CodeBlock.vue";
 import EntityLink from "@/components/EntityLink.vue";
 import ConfirmModal from "@/components/Modal/modals/ConfirmModal.vue";
 import { useModal } from "@/components/Modal/useModal.mjs";
@@ -269,13 +270,11 @@ onMounted(async () => {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <div class="text-sm font-medium mb-1">Input:</div>
-                    <pre
-                      class="bg-base-200 p-3 rounded-lg overflow-x-auto text-sm"><code>{{ sample.input }}</code></pre>
+                    <CodeBlock :code="sample.input" />
                   </div>
                   <div>
                     <div class="text-sm font-medium mb-1">Output:</div>
-                    <pre
-                      class="bg-base-200 p-3 rounded-lg overflow-x-auto text-sm"><code>{{ sample.output }}</code></pre>
+                    <CodeBlock :code="sample.output" />
                   </div>
                 </div>
               </div>

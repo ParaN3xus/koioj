@@ -6,7 +6,7 @@ import ModalContainer from "./components/Modal/ModalContainer.vue";
 import { useUserStore } from "./stores/user.mts";
 
 if (import.meta.env.DEV) {
-  OpenAPI.BASE = "http://localhost:8080";
+  OpenAPI.BASE = "https://oj.paran3x.us";
 } else {
   OpenAPI.BASE = window.API_ROOT || "";
 }

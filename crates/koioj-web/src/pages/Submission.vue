@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
 import TestCaseResultBadge from "@/components/Badges/TestCaseResultBadge.vue";
+import CodeBlock from "@/components/CodeBlock.vue";
 import { useApiErrorHandler } from "@/composables/useApiErrorHandler.mjs";
 import {
   ContestService,
@@ -169,8 +170,7 @@ onUnmounted(() => {
           <!-- Code -->
           <div>
             <h3 class="text-lg font-semibold mb-3">Code</h3>
-            <pre
-              class="bg-base-200 p-4 rounded-lg overflow-x-auto"><code class="font-mono text-sm">{{ submission.code }}</code></pre>
+            <CodeBlock :code="submission.code" :language="submission.lang" />
           </div>
         </div>
       </div>
