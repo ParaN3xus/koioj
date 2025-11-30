@@ -1054,7 +1054,7 @@ async fn submit(
                 )
                 .await
                 {
-                    tracing::error!("Failed to update ranking cache: {}", e);
+                    tracing::error!("Failed to update ranking cache: {:?}", e);
                     // Don't fail the whole operation if cache update fails
                 }
             }

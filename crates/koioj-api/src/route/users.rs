@@ -11,6 +11,7 @@ use crate::{
     auth::{Claims, generate_jwt_token, hash_password, jwt_auth_middleware, verify_password},
     error::Error,
     perm::{Action, Resource, UserRole, check_permission, role_of_claims},
+    route::contests::ranking_cache::clear_user_ranking_cache,
 };
 
 pub fn top_routes() -> Router<Arc<AppState>> {
@@ -428,6 +429,7 @@ async fn put_profile(
     .map_err(|e| Error::msg(format!("database error: {}", e)))?
     .ok_or_else(|| Error::msg("user not found").status_code(StatusCode::NOT_FOUND))?;
 
+    clear_user_ranking_cache(&state, user_id).await?;
     Ok(())
 }
 

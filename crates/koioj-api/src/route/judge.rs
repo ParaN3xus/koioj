@@ -329,7 +329,7 @@ async fn handle_judge_message(
                 )
                 .await
                 {
-                    tracing::error!("Failed to update ranking cache: {}", e);
+                    tracing::error!("Failed to update ranking cache: {:?}", e);
                     // Don't fail the whole operation if cache update fails
                 }
             }
@@ -376,7 +376,7 @@ async fn handle_judge_message(
                 )
                 .await
                 {
-                    tracing::error!("Failed to update ranking cache: {}", e);
+                    tracing::error!("Failed to update ranking cache: {:?}", e);
                     // Don't fail the whole operation if cache update fails
                 }
             }

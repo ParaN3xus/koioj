@@ -1,5 +1,5 @@
 use crate::AppState;
-use anyhow::{Error, Result};
+use crate::{Error, Result};
 use chrono::{DateTime, Utc};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
@@ -446,4 +446,34 @@ async fn calculate_contest_ranking_from_db(
     });
 
     Ok(rankings)
+}
+
+pub async fn clear_user_ranking_cache(state: &Arc<AppState>, user_id: i32) -> Result<()> {
+    let mut redis_conn = state.redis.clone();
+
+    let contest_ids: Vec<Option<i32>> = sqlx::query_scalar!(
+        "SELECT DISTINCT contest_id FROM submissions WHERE user_id = $1 AND contest_id IS NOT NULL",
+        user_id
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?;
+
+    for contest_id_opt in contest_ids {
+        if let Some(contest_id) = contest_id_opt {
+            let ranking_key = ranking_key(contest_id);
+            let _: () = redis_conn
+                .del(&ranking_key)
+                .await
+                .map_err(|e| Error::msg(format!("redis error: {}", e)))?;
+
+            tracing::debug!(
+                "Cleared ranking cache for contest {} due to user {} username change",
+                contest_id,
+                user_id
+            );
+        }
+    }
+
+    Ok(())
 }
