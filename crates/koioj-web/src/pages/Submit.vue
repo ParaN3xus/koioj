@@ -16,6 +16,8 @@ import { buildPath, routeMap } from "@/routes.mjs";
 import { useContestPasswordStore } from "@/stores/contestPassword.mjs";
 import { APP_NAME, parseIntOrNull } from "@/utils.mjs";
 
+const STORAGE_KEY_LAST_LANGUAGE = "koioj_last_selected_language";
+
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
@@ -77,11 +79,13 @@ const loadSupportedLanguages = async () => {
     const response = await JudgeService.getSupportedLanguages();
     supportedLanguages.value = response.languages;
 
-    // Set default language if current selection is not supported
+    const lastLang = localStorage.getItem(STORAGE_KEY_LAST_LANGUAGE) as Language | null;
     if (
-      supportedLanguages.value.length > 0 &&
-      (!lang.value || !supportedLanguages.value.includes(lang.value))
+      lastLang &&
+      supportedLanguages.value.includes(lastLang)
     ) {
+      lang.value = lastLang;
+    } else if (supportedLanguages.value.length > 0) {
       if (!supportedLanguages.value[0]) {
         throw Error("There's no supported languages!");
       }
@@ -129,6 +133,12 @@ const loadProblemAndContestData = async (password?: string) => {
 onMounted(async () => {
   await Promise.all([loadSupportedLanguages(), loadProblemAndContestData()]);
 });
+
+const saveSelectedLanguage = () => {
+  if (lang.value) {
+    localStorage.setItem(STORAGE_KEY_LAST_LANGUAGE, lang.value);
+  }
+};
 
 const handleSubmit = async () => {
   if (!code.value.trim()) {
@@ -209,7 +219,7 @@ const handleSubmit = async () => {
           <label class="label">
             <span class="label-text font-semibold">Programming Language</span>
           </label>
-          <select v-model="lang" class="select select-bordered w-full">
+          <select v-model="lang" class="select select-bordered w-full" @change="saveSelectedLanguage">
             <option v-for="language in languages" :key="language.value" :value="language.value">
               {{ language.label }}
             </option>
