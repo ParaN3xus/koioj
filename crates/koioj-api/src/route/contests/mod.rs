@@ -268,7 +268,7 @@ async fn list_contests(
             SELECT id, name, begin_time, end_time, type, (password IS NOT NULL) as has_password
             FROM contests
             WHERE end_time > $1
-            ORDER BY begin_time DESC
+            ORDER BY begin_time ASC
             LIMIT $2 OFFSET $3
             "#,
         ),
@@ -278,7 +278,7 @@ async fn list_contests(
             SELECT id, name, begin_time, end_time, type, (password IS NOT NULL) as has_password
             FROM contests
             WHERE status = 'active' AND end_time > $1
-            ORDER BY begin_time DESC
+            ORDER BY begin_time ASC
             LIMIT $2 OFFSET $3
             "#,
         ),
