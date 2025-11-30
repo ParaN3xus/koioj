@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import ProblemStatusBadge from "@/components/Badges/ProblemStatusBadge.vue";
 import EntityLink from "@/components/EntityLink.vue";
@@ -13,11 +13,12 @@ import {
   UserRole,
   UserService,
 } from "@/koioj-api";
-import { buildPath, routeMap } from "@/routes.mjs";
+import { routeMap } from "@/routes.mjs";
 import { useUserStore } from "@/stores/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 
@@ -25,8 +26,8 @@ const currentUserRole = ref<UserRole | null>(null);
 const problemsData = ref<ListProblemsResponse | null>(null);
 const isLoading = ref(true);
 
-const currentPage = ref(1);
-const pageSize = ref(10);
+const currentPage = ref(parseInt(route.query.page as string, 10) || 1);
+const pageSize = ref(parseInt(route.query.pageSize as string, 10) || 10);
 
 const canAddProblem = computed(() => {
   return (
@@ -60,6 +61,20 @@ const loadProblems = async () => {
   }
 };
 
+watch(
+  () => route.query,
+  (newQuery) => {
+    const page = parseInt(newQuery.page as string, 10) || 1;
+    const size = parseInt(newQuery.pageSize as string, 10) || 10;
+
+    if (currentPage.value !== page || pageSize.value !== size) {
+      currentPage.value = page;
+      pageSize.value = size;
+      loadProblems();
+    }
+  }
+);
+
 onMounted(() => {
   loadProblems();
 });
@@ -68,13 +83,14 @@ const handleAddProblem = () => {
   router.push(routeMap.createProblem.path);
 };
 
-const handleViewProblem = (problemId: string) => {
-  router.push(buildPath(routeMap.problem.path, { id: problemId }));
-};
-
 const handlePageChange = (page: number) => {
-  currentPage.value = page;
-  loadProblems();
+  router.push({
+    query: {
+      ...route.query,
+      page: page.toString(),
+      pageSize: pageSize.value.toString(),
+    },
+  });
 };
 </script>
 

@@ -155,10 +155,19 @@ const handleEditContest = () => {
 
 const switchTab = async (tab: "problems" | "ranking") => {
   activeTab.value = tab;
+  await router.push({
+    path: route.path,
+    query: { ...route.query, tab }
+  });
 };
 
 onMounted(async () => {
   if (contestId.value) {
+    const tabParam = route.query.tab as string;
+    if (tabParam === "problems" || tabParam === "ranking") {
+      activeTab.value = tabParam;
+    }
+
     await loadContestData(contestId.value);
   }
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import EntityLink from "@/components/EntityLink.vue";
 import Pagination from "@/components/Pagination.vue";
@@ -17,6 +17,7 @@ import { useUserStore } from "@/stores/user.mjs";
 
 const { handleApiError } = useApiErrorHandler();
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 
@@ -24,17 +25,33 @@ const currentUserRole = ref<UserRole | null>(null);
 const trainingPlansData = ref<ListTrainingPlansResponse | null>(null);
 const isLoading = ref(true);
 
-const currentPage = ref(1);
-const pageSize = ref(10);
-const endAfter = ref<string>(new Date().toISOString());
+const currentPage = ref(Number(route.query.page) || 1);
+const pageSize = ref(Number(route.query.pagesize) || 10);
+const endAfter = ref<string>(
+  (route.query.endafter as string) || new Date().toISOString(),
+);
+
+const updateUrl = () => {
+  router.replace({
+    query: {
+      page: String(currentPage.value),
+      pagesize: String(pageSize.value),
+      endafter: endAfter.value,
+    },
+  });
+};
+
+watch([currentPage, pageSize, endAfter], () => {
+  updateUrl();
+});
 
 const getDateValue = computed(() => {
   return endAfter.value.split("T")[0];
 });
+
 const handleDateInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const dateStr = target.value;
-  // date -> datatime at 0am today
   endAfter.value = new Date(`${dateStr}T00:00:00Z`).toISOString();
 };
 

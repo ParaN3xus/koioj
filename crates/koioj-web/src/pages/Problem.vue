@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import SubmissionResultBadge from "@/components/Badges/SubmissionResultBadge.vue";
@@ -28,8 +28,10 @@ const route = useRoute();
 const toast = useToast();
 const userStore = useUserStore();
 const submissions = ref<ListSubmissionsResponse | null>(null);
-const currentPage = ref(1);
-const pageSize = 10;
+
+const currentPage = ref(Number(route.query.page) || 1);
+const pageSize = ref(Number(route.query.pagesize) || 10);
+
 const isLoadingSubmissions = ref(false);
 
 const problemId = computed(() => {
@@ -53,6 +55,19 @@ const isAdminOrTeacher = computed(() => {
     currentUserRole.value === UserRole.ADMIN ||
     currentUserRole.value === UserRole.TEACHER
   );
+});
+
+const updateUrl = () => {
+  router.replace({
+    query: {
+      page: String(currentPage.value),
+      pagesize: String(pageSize.value),
+    },
+  });
+};
+
+watch([currentPage, pageSize], () => {
+  updateUrl();
 });
 
 const loadProblemData = async () => {
@@ -126,7 +141,7 @@ const loadSubmissions = async (page: number = 1) => {
     const response = await ProblemService.listSubmissions(
       problemId.value,
       page,
-      pageSize,
+      pageSize.value,
       contestId.value,
     );
     submissions.value = response;
@@ -137,9 +152,10 @@ const loadSubmissions = async (page: number = 1) => {
     isLoadingSubmissions.value = false;
   }
 };
+
 const totalPages = computed(() => {
   if (!submissions.value) return 1;
-  return Math.ceil(submissions.value.total / pageSize);
+  return Math.ceil(submissions.value.total / pageSize.value);
 });
 
 const handlePageChange = (page: number) => {
@@ -152,7 +168,7 @@ const handleSolutions = () => {
 
 onMounted(async () => {
   await loadProblemData();
-  await loadSubmissions(1);
+  await loadSubmissions(currentPage.value);
 });
 </script>
 

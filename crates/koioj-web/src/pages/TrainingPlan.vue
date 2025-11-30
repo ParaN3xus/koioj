@@ -97,11 +97,25 @@ const handleEditContest = () => {
   );
 };
 
+const switchTab = async (tab: "contests" | "ranking") => {
+  activeTab.value = tab;
+  await router.push({
+    path: route.path,
+    query: { ...route.query, tab }
+  });
+};
+
 onMounted(async () => {
   if (trainingPlanId.value) {
+    const tabParam = route.query.tab as string;
+    if (tabParam === "contests" || tabParam === "ranking") {
+      activeTab.value = tabParam;
+    }
+
     await loadTrainingPlanData(trainingPlanId.value);
   }
 });
+
 </script>
 
 <template>
@@ -148,13 +162,13 @@ onMounted(async () => {
           <div role="tablist" class="tabs tabs-bordered">
             <a role="tab" class="tab"
               :class="['inline-flex items-center gap-1', { 'tab-active': activeTab === 'contests' }]"
-              @click="activeTab = 'contests'">
+              @click="switchTab('contests')">
               <Icon icon="fa6-solid:list" />
               Contests
             </a>
             <a role="tab" class="tab"
               :class="['inline-flex items-center gap-1', { 'tab-active': activeTab === 'ranking' }]"
-              @click="activeTab = 'ranking'">
+              @click="switchTab('ranking')">
               <Icon icon="fa6-solid:ranking-star" />
               Ranking
             </a>
