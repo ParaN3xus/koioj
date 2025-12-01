@@ -347,7 +347,8 @@ onMounted(() => {
 
               <!-- Selected participants badges -->
               <div v-if="selectedParticipants.length > 0" class="mt-3 flex flex-wrap gap-2">
-                <div v-for="participant in selectedParticipants" class="badge badge-neutral badge-lg gap-2 p-3">
+                <div v-for="participant in selectedParticipants" :key="participant"
+                  class="badge badge-neutral badge-lg gap-2 p-3">
                   <span class="font-mono text-xs">{{ participant }}</span>
                   <EntityLink entity-type="user" :entity-id="participant" />
                   <button type="button" class="btn btn-ghost btn-xs btn-circle -ml-1 -mr-2"
