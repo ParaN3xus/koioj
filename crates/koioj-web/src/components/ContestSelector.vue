@@ -18,20 +18,36 @@ const isLoadingContest = ref(false);
 const previewContest = ref<ContestInfo | null>(null);
 const contestIdInputRef = ref<HTMLInputElement | null>(null);
 
-// Watch contest input for preview
+let previewAbortController: AbortController | null = null;
+
 watch(contestIdInput, async (newId) => {
+  // Cancel previous request
+  if (previewAbortController) {
+    previewAbortController.abort();
+    previewAbortController = null;
+  }
+
   if (!newId || modelValue.value.some((c) => c.contestId === newId)) {
     previewContest.value = null;
+    isLoadingContest.value = false;
     return;
   }
+
+  previewAbortController = new AbortController();
+  const currentController = previewAbortController;
   isLoadingContest.value = true;
-  const wasFocused = document.activeElement === contestIdInputRef.value;
 
   try {
     const response = await ContestService.getContest(
       newId,
       contestPasswordStore.getPassword(newId),
     );
+
+    // Check if this request was cancelled
+    if (currentController.signal.aborted) {
+      return;
+    }
+
     previewContest.value = {
       contestId: Number(response.contestId),
       name: response.name,
@@ -39,11 +55,14 @@ watch(contestIdInput, async (newId) => {
       endTime: response.endTime,
     };
   } catch (error) {
+    // Ignore abort errors
+    if (currentController.signal.aborted) {
+      return;
+    }
     previewContest.value = null;
   } finally {
-    isLoadingContest.value = false;
-    if (wasFocused) {
-      nextTick(() => contestIdInputRef.value?.focus());
+    if (!currentController.signal.aborted) {
+      isLoadingContest.value = false;
     }
   }
 });
@@ -153,8 +172,7 @@ const handleRemoveContest = (index: number) => {
     <!-- Input for adding contests -->
     <div class="join w-full">
       <input ref="contestIdInputRef" v-model.number="contestIdInput" type="number" placeholder="Enter contest ID"
-        class="input input-bordered join-item flex-1" :disabled="isLoadingContest"
-        @keydown.enter.prevent="handleAddContest" />
+        class="input input-bordered join-item flex-1" @keydown.enter.prevent="handleAddContest" />
       <button type="button" class="btn btn-primary join-item" :disabled="isLoadingContest || !contestIdInput"
         @click="handleAddContest">
         <span v-if="isLoadingContest" class="loading loading-spinner loading-sm"></span>
