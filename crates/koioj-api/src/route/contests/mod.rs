@@ -396,7 +396,7 @@ async fn get_contest(
     // Get problem list
     let problem_ids = match is_allowed {
         true => sqlx::query_scalar!(
-            "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY problem_id",
+            "SELECT problem_id FROM contest_problems WHERE contest_id = $1 ORDER BY number",
             contest_id
         )
         .fetch_all(&state.pool)
