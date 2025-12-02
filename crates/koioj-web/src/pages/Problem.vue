@@ -76,7 +76,7 @@ const loadProblemData = async () => {
   try {
     const [roleResponse, problemResponse] = await Promise.all([
       UserService.getRole(userStore.userId ?? -1),
-      ProblemService.getProblem(problemId.value),
+      ProblemService.getProblem(problemId.value, contestId.value),
     ]);
 
     currentUserRole.value = roleResponse.role;

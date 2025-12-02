@@ -126,7 +126,7 @@ const fetchEntityName = async () => {
 
       case "problem":
       case "contestProblem": {
-        const response = await ProblemService.getProblem(props.entityId);
+        const response = await ProblemService.getProblem(props.entityId, props.contestId);
         entityName.value = response.name;
         break;
       }

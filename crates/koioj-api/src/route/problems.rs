@@ -13,6 +13,7 @@ use sqlx::Row;
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
+use crate::route::contests::verify_contest_problem_access;
 use crate::{
     AppState, Result, State,
     auth::{Claims, jwt_auth_accept_guest_middleware, jwt_auth_middleware},
@@ -255,6 +256,12 @@ async fn list_problems(
     Ok(Json(ListProblemsResponse { problems, total }))
 }
 
+#[derive(Deserialize, IntoParams)]
+struct GetProblemQuery {
+    #[serde(rename = "contestId")]
+    contest_id: Option<i32>,
+}
+
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetProblemResponse {
@@ -274,7 +281,8 @@ pub(crate) struct GetProblemResponse {
     get,
     path = "/api/problems/{problem_id}",
     params(
-        ("problem_id" = i32, Path)
+        ("problem_id" = i32, Path),
+        GetProblemQuery
     ),
     responses(
         (status = 200, body = GetProblemResponse),
@@ -285,42 +293,64 @@ async fn get_problem(
     state: State,
     claims: Extension<Claims>,
     Path(problem_id): Path<i32>,
+    Query(query): Query<GetProblemQuery>,
 ) -> Result<Json<GetProblemResponse>> {
     let user_role = role_of_claims(&state.pool, &claims).await?;
-    let query = match user_role {
-        UserRole::Teacher | UserRole::Admin => {
-            r#"
-            SELECT id, name, time_limit, mem_limit, status
-            FROM problems
-            WHERE id = $1
-            "#
-        }
-        _ => {
-            r#"
-            SELECT id, name, time_limit, mem_limit, status
-            FROM problems
-            WHERE id = $1 AND status = 'active'
-            "#
-        }
+
+    let should_check_active = if let Some(cid) = query.contest_id {
+        verify_contest_problem_access(&state.pool, cid, problem_id, claims.sub).await?;
+        false // don't check active for contest problems
+    } else {
+        !matches!(user_role, UserRole::Teacher | UserRole::Admin)
     };
-    let problem = sqlx::query(query)
-        .bind(problem_id)
+
+    #[derive(Debug)]
+    struct ProblemRecord {
+        id: i32,
+        name: String,
+        time_limit: i32,
+        mem_limit: i32,
+        status: ProblemStatus,
+    }
+    let problem = if should_check_active {
+        sqlx::query_as!(
+            ProblemRecord,
+            r#"
+        SELECT id, name, time_limit, mem_limit, status as "status: ProblemStatus"
+        FROM problems
+        WHERE id = $1 AND status = 'active'
+        "#,
+            problem_id
+        )
         .fetch_optional(&state.pool)
         .await
-        .map_err(|e| Error::msg(format!("database error: {}", e)))?
-        .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
+    } else {
+        sqlx::query_as!(
+            ProblemRecord,
+            r#"
+        SELECT id, name, time_limit, mem_limit, status as "status: ProblemStatus"
+        FROM problems
+        WHERE id = $1
+        "#,
+            problem_id
+        )
+        .fetch_optional(&state.pool)
+        .await
+    }
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
     let content = state.read_problem_content(problem_id).await?;
     Ok(Json(GetProblemResponse {
-        problem_id: problem.get::<i32, _>("id"),
-        name: problem.get::<String, _>("name"),
+        problem_id: problem.id,
+        name: problem.name,
         description: content.description,
         input_description: content.input_description,
         output_description: content.output_description,
         samples: content.samples,
         note: content.note,
-        time_limit: problem.get::<i32, _>("time_limit"),
-        mem_limit: problem.get::<i32, _>("mem_limit"),
-        status: problem.get::<ProblemStatus, _>("status"),
+        time_limit: problem.time_limit,
+        mem_limit: problem.mem_limit,
+        status: problem.status,
     }))
 }
 
@@ -918,21 +948,11 @@ async fn submit(
         bail!(@BAD_REQUEST "code and lang are required");
     }
 
-    sqlx::query!(
-        r#"
-        SELECT id FROM problems WHERE id = $1 AND status = 'active'
-        "#,
-        problem_id
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| Error::msg(format!("database error: {}", e)))?
-    .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
-
     let contest_id = p.contest_id;
 
     // submitting to a contest's problem
     if let Some(cid) = contest_id {
+        // verify contest exists and is in valid time range
         let _contest_exists = sqlx::query!(
             r#"
             SELECT id FROM contests 
@@ -950,7 +970,7 @@ async fn submit(
             Error::msg("contest not in valid time range").status_code(StatusCode::FORBIDDEN)
         })?;
 
-        // verify that this guy participates in this contest
+        // verify that this user participates in this contest
         let participant = sqlx::query!(
             r#"
             SELECT user_id FROM contest_participants WHERE contest_id = $1 AND user_id = $2
@@ -965,6 +985,47 @@ async fn submit(
         if participant.is_none() {
             bail!(@FORBIDDEN "user not participating in this contest");
         }
+
+        // verify that this problem is in this contest
+        sqlx::query!(
+            r#"
+            SELECT contest_id FROM contest_problems 
+            WHERE contest_id = $1 AND problem_id = $2
+            "#,
+            cid,
+            problem_id
+        )
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .ok_or_else(|| {
+            Error::msg("problem not in this contest").status_code(StatusCode::NOT_FOUND)
+        })?;
+
+        // for contest submissions, we don't check if problem is active
+        // just verify the problem exists
+        sqlx::query!(
+            r#"
+            SELECT id FROM problems WHERE id = $1
+            "#,
+            problem_id
+        )
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
+    } else {
+        // for normal submissions, check if problem exists and is active
+        sqlx::query!(
+            r#"
+            SELECT id FROM problems WHERE id = $1 AND status = 'active'
+            "#,
+            problem_id
+        )
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| Error::msg(format!("database error: {}", e)))?
+        .ok_or_else(|| Error::msg("problem not found").status_code(StatusCode::NOT_FOUND))?;
     }
 
     let submission = sqlx::query!(

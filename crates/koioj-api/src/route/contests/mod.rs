@@ -12,7 +12,7 @@ use axum_extra::extract::Query as ExtraQuery;
 use chrono::{DateTime, Utc};
 use koioj_common::{bail, judge::SubmissionResult};
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
+use sqlx::{PgPool, Row};
 use std::sync::Arc;
 use utoipa::{IntoParams, ToSchema};
 
@@ -966,4 +966,55 @@ async fn get_overall_ranking(
     Ok(Json(GetOverallRankingResponse {
         rankings: overall_rankings,
     }))
+}
+
+pub async fn verify_contest_problem_access(
+    pool: &PgPool,
+    contest_id: i32,
+    problem_id: i32,
+    user_id: i32,
+) -> Result<()> {
+    // verify contest exists and is in valid time range
+    sqlx::query!(
+        r#"
+        SELECT id FROM contests 
+        WHERE id = $1 
+        AND status = 'active'
+        "#,
+        contest_id
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| {
+        Error::msg("contest not in valid time range").status_code(StatusCode::FORBIDDEN)
+    })?;
+    // verify user participates in this contest
+    sqlx::query!(
+        r#"
+        SELECT user_id FROM contest_participants WHERE contest_id = $1 AND user_id = $2
+        "#,
+        contest_id,
+        user_id
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| {
+        Error::msg("user not participating in this contest").status_code(StatusCode::FORBIDDEN)
+    })?;
+    // verify problem is in this contest
+    sqlx::query!(
+        r#"
+        SELECT contest_id FROM contest_problems 
+        WHERE contest_id = $1 AND problem_id = $2
+        "#,
+        contest_id,
+        problem_id
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("problem not in this contest").status_code(StatusCode::NOT_FOUND))?;
+    Ok(())
 }
