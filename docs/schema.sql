@@ -123,3 +123,24 @@ CREATE TABLE contest_participants (
     joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (contest_id, user_id, training_plan_id)
 );
+
+CREATE INDEX idx_submissions_problem_user_contest_result 
+ON submissions(problem_id, user_id, contest_id, result);
+
+CREATE INDEX idx_submissions_problem_user_contest_created 
+ON submissions(problem_id, user_id, contest_id, created_at DESC);
+
+CREATE INDEX idx_contest_problems_problem_id 
+ON contest_problems(problem_id);
+
+CREATE INDEX idx_contests_status_endtime 
+ON contests(end_time);
+
+CREATE INDEX idx_test_cases_problem_id 
+ON test_cases(problem_id);
+
+CREATE INDEX idx_solutions_problem_id 
+ON solutions(problem_id);
+
+CREATE INDEX idx_problems_status 
+ON problems(status);
