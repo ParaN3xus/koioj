@@ -146,18 +146,30 @@ const handleFilterChange = () => {
               <tr>
                 <th>ID</th>
                 <th>Name</th>
+                <th>Contests</th>
+                <th>Participants</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="plan in trainingPlansData.plans" :key="plan.id">
-                <td>
-                  {{ plan.id }}
-                </td>
+                <td>{{ plan.id }}</td>
                 <td>
                   <EntityLink entity-type="trainingPlan" :entity-id="plan.id" display-type="link">
                     {{ plan.name }}
                   </EntityLink>
+                </td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <Icon icon="fa6-solid:trophy" class="text-warning" />
+                    {{ plan.contestCount }}
+                  </div>
+                </td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <Icon icon="fa6-solid:users" class="text-info" />
+                    {{ plan.participantCount }}
+                  </div>
                 </td>
                 <td class="text-right">
                   <EntityLink entity-type="trainingPlan" :entity-id="plan.id" display-type="button" />
