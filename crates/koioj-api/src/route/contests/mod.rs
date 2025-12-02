@@ -381,16 +381,32 @@ async fn get_contest(
             description: String::new(),
         });
 
-    let mut is_allowed = true;
     let now = chrono::Utc::now();
-    if contest.begin_time > now {
-        is_allowed = match user_role {
-            UserRole::Admin => true,
-            _ => {
-                let owner_id = Resource::Contest(contest_id).owner_id(&state.pool).await?;
-                owner_id == claims.sub
+    let is_allowed = match user_role {
+        UserRole::Admin | UserRole::Teacher => true,
+        _ => {
+            // For non-admin/teacher users, check both contest start time and participation
+            if contest.begin_time > now {
+                false
+            } else {
+                let is_participant = sqlx::query!(
+                    r#"
+                    SELECT EXISTS(
+                        SELECT 1 FROM contest_participants
+                        WHERE contest_id = $1 AND user_id = $2
+                    ) as "exists!"
+                    "#,
+                    contest_id,
+                    claims.sub
+                )
+                .fetch_one(&state.pool)
+                .await
+                .map_err(|e| Error::msg(format!("database error: {}", e)))?
+                .exists;
+
+                is_participant
             }
-        };
+        }
     };
 
     // Get problem list
@@ -417,7 +433,6 @@ async fn get_contest(
         problem_ids,
     }))
 }
-
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UpdateContestRequest {
@@ -810,13 +825,37 @@ async fn get_contest_ranking(
     // Verify password
     check_contest_password(&state.pool, contest_id, query.password).await?;
 
+    // Check if non-admin/teacher users have joined the contest
+    match user_role {
+        UserRole::Admin | UserRole::Teacher => {}
+        _ => {
+            let is_participant = sqlx::query!(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1 FROM contest_participants
+                    WHERE contest_id = $1 AND user_id = $2
+                ) as "exists!"
+                "#,
+                contest_id,
+                claims.sub
+            )
+            .fetch_one(&state.pool)
+            .await
+            .map_err(|e| Error::msg(format!("database error: {}", e)))?
+            .exists;
+
+            if !is_participant {
+                bail!(@FORBIDDEN "you must join the contest to view rankings");
+            }
+        }
+    }
+
     let contest_info = ContestInfo {
         id: contest.id,
         begin_time: contest.begin_time,
         end_time: contest.end_time,
     };
 
-    // let rankings = calculate_contest_ranking(&state.pool, &contest_info).await?;
     let rankings = ranking_cache::get_contest_ranking_cached(&state, &contest_info)
         .await
         .map_err(|e| {

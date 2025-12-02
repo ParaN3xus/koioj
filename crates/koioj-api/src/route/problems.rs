@@ -298,7 +298,9 @@ async fn get_problem(
     let user_role = role_of_claims(&state.pool, &claims).await?;
 
     let should_check_active = if let Some(cid) = query.contest_id {
-        verify_contest_problem_access(&state.pool, cid, problem_id, claims.sub).await?;
+        if !matches!(user_role, UserRole::Teacher | UserRole::Admin) {
+            verify_contest_problem_access(&state.pool, cid, problem_id, claims.sub).await?;
+        }
         false // don't check active for contest problems
     } else {
         !matches!(user_role, UserRole::Teacher | UserRole::Admin)
