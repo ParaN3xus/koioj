@@ -34,6 +34,13 @@ const endAfter = ref<string>(
   (route.query.endafter as string) || new Date().toISOString(),
 );
 
+const isAdminOrTeacher = computed(() => {
+  return (
+    currentUserRole.value === UserRole.ADMIN ||
+    currentUserRole.value === UserRole.TEACHER
+  );
+});
+
 const updateUrl = () => {
   router.replace({
     query: {
@@ -128,7 +135,7 @@ const getContestTypeColor = (type: ContestType) => {
           </h2>
 
           <div class="flex gap-4">
-            <RouterLink :to="routeMap.overallRanking" class="btn btn-secondary">
+            <RouterLink v-if="isAdminOrTeacher" :to="routeMap.overallRanking" class="btn btn-secondary">
               <Icon icon="fa6-solid:ranking-star" width="16" />
               Overall Ranking
             </RouterLink>
