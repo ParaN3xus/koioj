@@ -31,6 +31,7 @@ const isLoading = ref(true);
 const contestData = ref<GetContestResponse | null>(null);
 const currentUserRole = ref<UserRole | null>(null);
 const activeTab = ref<"problems" | "ranking">("problems");
+const isJoined = ref(false);
 
 const isAdminOrTeacher = computed(() => {
   return (
@@ -89,16 +90,16 @@ const loadContestData = async (id: number, password?: string) => {
     document.title = `${response.name} - ${APP_NAME}`;
 
     if (storedPassword && !password) {
-      // Verify stored password is still valid
       contestPasswordStore.setPassword(Number(id), storedPassword);
     } else if (password) {
       contestPasswordStore.setPassword(Number(id), password);
     }
 
-    // Load user role if logged in
     if (userStore.userId) {
       const roleResponse = await UserService.getRole(userStore.userId);
       currentUserRole.value = roleResponse.role;
+
+      isJoined.value = await ContestService.getIsJoined(id);
     }
 
     isLoading.value = false;
@@ -202,9 +203,10 @@ onMounted(async () => {
             </div>
 
             <div class="flex gap-2">
-              <button v-if="userStore.isLoggedIn" @click="handleJoinContest" class="btn btn-primary">
-                <Icon icon="fa6-solid:right-to-bracket" />
-                Join Contest
+              <button v-if="userStore.isLoggedIn" @click="handleJoinContest" class="btn btn-primary"
+                :disabled="isJoined">
+                <Icon :icon="isJoined ? 'fa6-solid:check' : 'fa6-solid:right-to-bracket'" />
+                {{ isJoined ? 'Joined' : 'Join Contest' }}
               </button>
 
               <template v-if="isAdminOrTeacher">

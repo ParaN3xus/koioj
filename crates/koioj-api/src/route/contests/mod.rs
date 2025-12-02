@@ -50,6 +50,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
                 .route("/{contest_id}", put(put_contest))
                 .route("/{contest_id}", delete(delete_contest))
                 .route("/{contest_id}/join", post(join_contest))
+                .route("/{contest_id}/is-joined", get(get_is_joined))
                 .route("/{contest_id}/ranking", get(get_contest_ranking))
                 .route("/overall-ranking", get(get_overall_ranking))
                 .layer(middleware::from_fn_with_state(state, jwt_auth_middleware)),
@@ -765,6 +766,62 @@ async fn join_contest(
     .map_err(|e| Error::msg(format!("database error: {}", e)))?;
 
     Ok(())
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/contests/{contest_id}/is-joined",
+    params(
+        ("contest_id" = i32, Path, description = "Contest ID"),
+    ),
+    responses(
+        (status = 200, body = bool),
+    ),
+    security(("bearer_auth" = [])),
+    tag = "contest"
+)]
+async fn get_is_joined(
+    state: State,
+    claims: Extension<Claims>,
+    Path(contest_id): Path<i32>,
+) -> Result<Json<bool>> {
+    let user_id = claims.sub;
+
+    // Get contest info
+    let contest = sqlx::query!(
+        r#"
+        SELECT status as "status_: ContestStatus"
+        FROM contests
+        WHERE id = $1
+        "#,
+        contest_id
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .ok_or_else(|| Error::msg("contest not found").status_code(StatusCode::NOT_FOUND))?;
+
+    // Check if contest is hidden
+    if contest.status_ == ContestStatus::Hidden {
+        let user_role = role_of_claims(&state.pool, &claims).await?;
+        match user_role {
+            UserRole::Teacher | UserRole::Admin => {}
+            _ => bail!(@NOT_FOUND "contest not found"),
+        }
+    }
+
+    // Check if already joined
+    let is_joined = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM contest_participants WHERE contest_id = $1 AND user_id = $2)",
+        contest_id,
+        user_id
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| Error::msg(format!("database error: {}", e)))?
+    .unwrap_or(false);
+
+    Ok(Json(is_joined))
 }
 
 pub struct ContestInfo {

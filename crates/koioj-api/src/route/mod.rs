@@ -80,6 +80,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         contests::put_contest,
         contests::delete_contest,
         contests::join_contest,
+        contests::get_is_joined,
         contests::get_contest_ranking,
         contests::get_overall_ranking,
         training_plans::get_training_plan,
