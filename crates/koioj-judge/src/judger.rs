@@ -37,6 +37,7 @@ pub struct JudgerResult {
     pub output_files: Vec<(String, Vec<u8>)>,
 }
 
+#[derive(Clone)]
 pub struct FileInput {
     pub filename: String,
     pub content: Vec<u8>,
@@ -185,4 +186,51 @@ pub fn run_judger(
         stderr,
         output_files,
     })
+}
+
+pub async fn run_judger_async(
+    judger_bin_path: &str,
+    rootfs: &str,
+    tmpfs_size: &str,
+    cgroup: &str,
+    sandbox_id: &str,
+    time_limit_ms: i32,
+    memory_limit_mb: i64,
+    pids_limit: i32,
+    stdin_content: &str,
+    cmdline: &[&str],
+    files: &[FileInput],
+    output_filenames: &[&str],
+) -> Result<JudgerResult> {
+    let judger_bin_path = judger_bin_path.to_string();
+    let rootfs = rootfs.to_string();
+    let tmpfs_size = tmpfs_size.to_string();
+    let cgroup = cgroup.to_string();
+    let sandbox_id = sandbox_id.to_string();
+    let stdin_content = stdin_content.to_string();
+    let cmdline: Vec<String> = cmdline.iter().map(|s| s.to_string()).collect();
+    let files = files.to_vec();
+    let output_filenames: Vec<String> = output_filenames.iter().map(|s| s.to_string()).collect();
+
+    tokio::task::spawn_blocking(move || {
+        let cmdline_refs: Vec<&str> = cmdline.iter().map(|s| s.as_str()).collect();
+        let output_refs: Vec<&str> = output_filenames.iter().map(|s| s.as_str()).collect();
+
+        run_judger(
+            &judger_bin_path,
+            &rootfs,
+            &tmpfs_size,
+            &cgroup,
+            &sandbox_id,
+            time_limit_ms,
+            memory_limit_mb,
+            pids_limit,
+            &stdin_content,
+            &cmdline_refs,
+            &files,
+            &output_refs,
+        )
+    })
+    .await
+    .map_err(|e| Error::anyhow(anyhow::anyhow!("Spawn blocking error: {}", e)))?
 }

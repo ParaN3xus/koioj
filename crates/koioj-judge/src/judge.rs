@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::judger::{FileInput, JudgerResult, run_judger};
+use crate::judger::{FileInput, JudgerResult, run_judger_async};
 use futures::future::join_all;
 use koioj_common::judge::{
     JudgeLoad, JudgeResult, JudgeToApiMessage, Language, SubmissionResult, TestCase,
@@ -139,7 +139,7 @@ async fn judge_submission(
 
     // compile
     if let Some(compile_cmd) = &lang_config.compile {
-        match run_judger(
+        match run_judger_async(
             &judger_bin_path,
             &rootfs_path,
             tmpfs_size,
@@ -155,7 +155,9 @@ async fn judge_submission(
                 .collect::<Vec<&str>>(),
             &[FileInput::text(&lang_config.source, &code, 0o644)],
             &[&lang_config.compiled],
-        ) {
+        )
+        .await
+        {
             Err(e) => {
                 return JudgeToApiMessage::Error(
                     submission_id,
@@ -196,12 +198,13 @@ async fn judge_submission(
         let rootfs_path = rootfs_path.clone();
         let judger_bin_path = judger_bin_path.clone();
         let cgroup_base = cgroup_base.clone();
+        let submission_id = submission_id;
 
         async move {
             let input_files: Vec<FileInput> = match compile_result_ref {
                 Some(res) => match res.output_files.iter().find(|(name, _)| name == &compiled) {
                     Some((_, content)) => vec![FileInput {
-                        filename: compiled,
+                        filename: compiled.clone(),
                         content: content.to_vec(),
                         mode: 0o775,
                     }],
@@ -217,7 +220,7 @@ async fn judge_submission(
                 None => vec![],
             };
 
-            let run_result = run_judger(
+            let run_result = run_judger_async(
                 &judger_bin_path,
                 &rootfs_path,
                 tmpfs_size,
@@ -226,11 +229,12 @@ async fn judge_submission(
                 time_limit.into(),
                 memory_limit.into(),
                 pids_limit,
-                &input, // stdin
+                &input,
                 &run_cmd.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
                 &input_files,
                 &[],
-            );
+            )
+            .await;
 
             match run_result {
                 Err(_) => TestCaseResult {
