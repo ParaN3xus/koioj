@@ -140,7 +140,7 @@ onUnmounted(() => {
             </div>
             <div v-if="submission.memConsumption !== null">
               <p class="text-sm text-gray-500">Memory</p>
-              <p class="font-semibold">{{ submission.memConsumption }} KB</p>
+              <p class="font-semibold">{{ submission.memConsumption }} MB</p>
             </div>
           </div>
 
