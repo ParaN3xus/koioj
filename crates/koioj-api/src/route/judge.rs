@@ -1,7 +1,10 @@
 use anyhow::anyhow;
 use axum::{
     Json, Router,
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::{
+        DefaultBodyLimit,
+        ws::{Message, WebSocket, WebSocketUpgrade},
+    },
     response::Response,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
@@ -21,7 +24,11 @@ use crate::{AppState, Result, State, error::Error};
 pub fn routes(_state: Arc<AppState>) -> Router<Arc<AppState>> {
     use axum::routing::*;
     Router::new()
-        .route("/ws", get(judge_ws))
+        .merge(
+            Router::new()
+                .route("/ws", get(judge_ws))
+                .layer(DefaultBodyLimit::max(1024 * 1024 * 1024)),
+        )
         .route("/supported-languages", get(get_supported_languages))
 }
 
@@ -121,7 +128,9 @@ impl crate::AppState {
     tag = "judge"
 )]
 pub async fn judge_ws(ws: WebSocketUpgrade, state: State) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, state))
+    ws.max_message_size(1024 * 1024 * 1024)
+        .max_frame_size(1024 * 1024 * 1024)
+        .on_upgrade(|socket| handle_socket(socket, state))
 }
 
 async fn handle_socket(socket: WebSocket, state: State) {

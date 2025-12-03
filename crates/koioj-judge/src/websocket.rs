@@ -4,7 +4,9 @@ use koioj_common::error::{Context, Result};
 use koioj_common::judge::{ApiToJudgeMessage, JudgeInfo, JudgeTask, JudgeToApiMessage};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{
+    connect_async_with_config, tungstenite::Message, tungstenite::protocol::WebSocketConfig,
+};
 
 pub async fn run(config: Config) -> Result<()> {
     let ws_url = config
@@ -31,7 +33,11 @@ pub async fn run(config: Config) -> Result<()> {
 }
 
 async fn connect_and_handle(url: &str, config: &Config) -> Result<()> {
-    let (ws_stream, _) = connect_async(url)
+    let mut ws_config = WebSocketConfig::default();
+    ws_config.max_message_size = Some(1024 * 1024 * 1024);
+    ws_config.max_frame_size = Some(1024 * 1024 * 1024);
+
+    let (ws_stream, _) = connect_async_with_config(url, Some(ws_config), false)
         .await
         .context("Failed to connect to WebSocket")?;
 
