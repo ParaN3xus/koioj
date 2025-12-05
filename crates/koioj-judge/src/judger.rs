@@ -108,6 +108,7 @@ pub fn run_judger(
     sandbox_id: &str,
     time_limit_ms: i32,
     memory_limit_mb: i64,
+    fsize_limit: i64,
     pids_limit: i32,
     stdin_content: &str,
     cmdline: &[&str],
@@ -126,6 +127,7 @@ pub fn run_judger(
 
         write_i32(&mut stdin, time_limit_ms)?;
         write_i64(&mut stdin, memory_limit_mb)?;
+        write_i64(&mut stdin, fsize_limit)?;
         write_i32(&mut stdin, pids_limit)?;
         write_str(&mut stdin, rootfs)?;
         write_str(&mut stdin, tmpfs_size)?;
@@ -196,6 +198,7 @@ pub async fn run_judger_async(
     sandbox_id: &str,
     time_limit_ms: i32,
     memory_limit_mb: i64,
+    fsize_limit: i64,
     pids_limit: i32,
     stdin_content: &str,
     cmdline: &[&str],
@@ -224,6 +227,7 @@ pub async fn run_judger_async(
             &sandbox_id,
             time_limit_ms,
             memory_limit_mb,
+            fsize_limit,
             pids_limit,
             &stdin_content,
             &cmdline_refs,
@@ -231,6 +235,5 @@ pub async fn run_judger_async(
             &output_refs,
         )
     })
-    .await
-    .map_err(|e| Error::anyhow(anyhow::anyhow!("Spawn blocking error: {}", e)))?
+    .await?
 }

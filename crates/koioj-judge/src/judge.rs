@@ -147,6 +147,7 @@ async fn judge_submission(
             &format!("koioj_judge_{}_compile", submission_id),
             5000,
             512,
+            512 * 1024 * 1024,
             128,
             "",
             &compile_cmd
@@ -228,6 +229,7 @@ async fn judge_submission(
                 &format!("koioj_judge_{}_test_{}", submission_id, test_id),
                 time_limit.into(),
                 memory_limit.into(),
+                32 * 1024,
                 pids_limit,
                 &input,
                 &run_cmd.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),

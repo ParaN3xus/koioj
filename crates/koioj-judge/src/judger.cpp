@@ -45,6 +45,7 @@ struct FileInfo {
 struct JudgeConfig {
   int time_limit;         // ms
   long long memory_limit; // MB
+  long long fsize_limit;
   int pids_limit;
   std::string rootfs;
   std::string tmpfs_size;
@@ -118,7 +119,6 @@ void write_proto_buf(int fd, const std::vector<char> &buf) {
 }
 
 // file utils
-
 void write_file(const std::string &path, const std::string &content) {
   std::ofstream ofs(path);
   if (!ofs)
@@ -174,24 +174,43 @@ std::string get_cgroup_key(const std::string &s, const std::string &k) {
   return "0";
 }
 
+int pivot_root(const char *new_root, const char *put_old) {
+  return syscall(SYS_pivot_root, new_root, put_old);
+}
+
 // sandbox
 struct RunContext {
   JudgeConfig *cfg;
   int child_pipe[2]; // barrier
   int result_pipe[2];
+  std::string sandbox_root;
 };
 
 int sandbox_executor(RunContext *ctx) {
   close(ctx->result_pipe[0]);
   close(ctx->result_pipe[1]);
 
-  if (chdir(("/tmp/judger_sandbox_" + ctx->cfg->sandbox_id + "/tmp").c_str()))
+  // mount proc first
+  if (mount("proc", "/proc", "proc", 0, nullptr))
+    return 1;
+
+  // pivot_root to isolate filesystem
+  if (mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr))
+    return 1;
+  if (chdir(ctx->sandbox_root.c_str()))
+    return 1;
+  if (pivot_root(".", "."))
+    return 1;
+  if (umount2(".", MNT_DETACH))
+    return 1;
+  if (chdir("/tmp"))
     return 1;
 
   // redir stdio
   write_file("stdin", ctx->cfg->stdin_content);
   setuid(65534); // nobody
   setgid(65534);
+
   freopen("stdin", "r", stdin);
   freopen("stdout", "w", stdout);
   freopen("stderr", "w", stderr);
@@ -203,72 +222,52 @@ int sandbox_executor(RunContext *ctx) {
     return 1;
   close(ctx->child_pipe[0]);
 
-  // block SIGCHLD
-  sigset_t mask;
-  sigemptyset(&mask);
-  sigaddset(&mask, SIGCHLD);
-  if (sigprocmask(SIG_BLOCK, &mask, nullptr) == -1) {
-    return 1; // sys err
-  }
-
   int pid = fork();
   if (pid < 0)
     return 1;
 
   if (pid == 0) {
-    // SIG_UNBLOCK
-    sigprocmask(SIG_UNBLOCK, &mask, nullptr);
-
-    char *envp[] = {(char *)"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/"
-                            "usr/bin:/sbin:/bin",
-                    nullptr};
+    // child process
     rlimit rl;
     rl.rlim_cur = rl.rlim_max = RLIM_INFINITY;
     setrlimit(RLIMIT_STACK, &rl);
+
+    rlimit rl_fsize;
+    rl_fsize.rlim_cur = rl_fsize.rlim_max = ctx->cfg->fsize_limit;
+    setrlimit(RLIMIT_FSIZE, &rl_fsize);
+
+    // close unnecessary fds
+    for (int fd = STDERR_FILENO + 1; fd < sysconf(_SC_OPEN_MAX); fd++)
+      close(fd);
 
     std::vector<char *> argv;
     for (auto &s : ctx->cfg->cmdline)
       argv.push_back(&s[0]);
     argv.push_back(nullptr);
 
+    char *envp[] = {nullptr};
     execve(argv[0], argv.data(), envp);
     exit(EXIT_FAILURE);
   }
 
+  // parent: wait with timeout
   int time_limit_ms = ctx->cfg->time_limit + EXTRA_TIME;
-  struct timespec timeout;
-  timeout.tv_sec = time_limit_ms / 1000;
-  timeout.tv_nsec = (time_limit_ms % 1000) * 1000000;
-
-  int sig_ret = sigtimedwait(&mask, nullptr, &timeout);
-
-  if (sig_ret < 0) {
-    if (errno == EAGAIN) {
-      // tle
-      kill(pid, SIGKILL);
-      // prevent zombie
-      waitpid(pid, nullptr, 0);
-      return 2; // TLE
-    } else {
-      // other
-      kill(pid, SIGKILL);
-      waitpid(pid, nullptr, 0);
+  for (int t = 0; t < time_limit_ms; t += 100) {
+    usleep(100000); // 100ms
+    int status;
+    int ret = waitpid(pid, &status, WNOHANG);
+    if (ret == 0)
+      continue; // still running
+    if (ret == -1)
       return 1;
-    }
-  }
-
-  // exited
-  int status;
-  int wait_ret = waitpid(pid, &status, WNOHANG);
-
-  if (wait_ret == pid) {
-    // normal exit check
+    // process exited
     return (WIFEXITED(status) ? (WEXITSTATUS(status) == 0 ? 0 : 1) : 3);
   }
 
-  // default
+  // timeout
   kill(pid, SIGKILL);
-  return 1;
+  waitpid(pid, nullptr, 0);
+  return 2; // TLE
 }
 
 int container_init(void *arg) {
@@ -285,15 +284,18 @@ int container_init(void *arg) {
       mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr))
     return 1;
 
-  std::string sandbox_root = "/tmp/judger_sandbox_" + ctx->cfg->sandbox_id;
-  mkdir(sandbox_root.c_str(), 0777);
+  ctx->sandbox_root = "/tmp/judger_sandbox_" + ctx->cfg->sandbox_id;
+  mkdir(ctx->sandbox_root.c_str(), 0777);
 
-  // mount overlay/bind
-  if (mount(ctx->cfg->rootfs.c_str(), sandbox_root.c_str(), "", MS_BIND, "") ||
-      mount("", sandbox_root.c_str(), "", MS_REMOUNT | MS_RDONLY | MS_BIND, ""))
+  // mount bind rootfs
+  if (mount(ctx->cfg->rootfs.c_str(), ctx->sandbox_root.c_str(), "", MS_BIND,
+            ""))
+    return 1;
+  if (mount("", ctx->sandbox_root.c_str(), "", MS_REMOUNT | MS_RDONLY | MS_BIND,
+            ""))
     return 1;
 
-  std::string tmp_path = sandbox_root + "/tmp";
+  std::string tmp_path = ctx->sandbox_root + "/tmp";
   std::string opts = "mode=0777,size=" + ctx->cfg->tmpfs_size;
   if (mount("tmpfs", tmp_path.c_str(), "tmpfs", 0, opts.c_str()))
     return 1;
@@ -317,12 +319,14 @@ int container_init(void *arg) {
 
   // restrict resource
   try {
-    write_file(cgroup_path + "/cpu.max", "100000 100000");
+    write_file(cgroup_path + "/cpu.max", "100000");
     write_file(cgroup_path + "/pids.max", std::to_string(ctx->cfg->pids_limit));
     std::string mem_limit =
         std::to_string(ctx->cfg->memory_limit * 1024 * 1024);
+    write_file(cgroup_path + "/memory.high", mem_limit);
     write_file(cgroup_path + "/memory.max", mem_limit);
-    write_file(cgroup_path + "/memory.swap.max", "0");
+    write_file(cgroup_path + "/memory.swap.high", mem_limit);
+    write_file(cgroup_path + "/memory.swap.max", mem_limit);
   } catch (...) {
     return 1;
   }
@@ -337,6 +341,9 @@ int container_init(void *arg) {
 
   // add executor to the cgroup
   write_file(cgroup_path + "/cgroup.procs", std::to_string(exec_pid));
+
+  // small delay for cgroup to apply
+  usleep(200000);
 
   write(ctx->child_pipe[1], "1", 1);
   close(ctx->child_pipe[1]);
@@ -367,6 +374,8 @@ int container_init(void *arg) {
     res.verdict = VERDICT_RE;
   else if (exit_code == 2)
     res.verdict = VERDICT_TLE;
+  else if (exit_code == 3)
+    res.verdict = (oom ? VERDICT_MLE : VERDICT_RE);
   else
     res.verdict = VERDICT_UKE;
 
@@ -386,8 +395,8 @@ int container_init(void *arg) {
   // clean
   rmdir(cgroup_path.c_str());
   umount(tmp_path.c_str());
-  umount(sandbox_root.c_str());
-  rmdir(sandbox_root.c_str());
+  umount(ctx->sandbox_root.c_str());
+  rmdir(ctx->sandbox_root.c_str());
 
   // write results
   write_full(ctx->result_pipe[1], &res.verdict, sizeof(int));
@@ -415,6 +424,7 @@ int main() {
 
     read_full(0, &cfg.time_limit, sizeof(int));
     read_full(0, &cfg.memory_limit, sizeof(long long));
+    read_full(0, &cfg.fsize_limit, sizeof(long long));
     read_full(0, &cfg.pids_limit, sizeof(int));
     cfg.rootfs = read_proto_str(0);
     cfg.tmpfs_size = read_proto_str(0);
